@@ -1,0 +1,11 @@
+{
+  "note": "Demo blocklist. The entries are fictional accounts used by the sandbox and testnet demos. Point BLOCKLIST_PATH at your own file, or set SUPABASE_URL to use a shared table.",
+  "entries": [
+    {
+      "account_id": "attacker.sandbox",
+      "reason": "PAYMENT_REDIRECT_SCAM",
+      "evidence": "Demo: hidden 'payment address changed' instruction injected into a vendor invoice page (fixtures/poisoned-vendor.html).",
+      "reported_at": "2026-11-05T00:00:00Z"
+    }
+  ]
+}

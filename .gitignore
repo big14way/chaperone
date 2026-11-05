@@ -1,5 +1,6 @@
 .env
 .env.*
+!.env.example
 node_modules/
 dist/
 .next/
@@ -7,3 +8,6 @@ target/
 *.log
 .DS_Store
 neardev/
+.near-credentials/
+.chaperone/
+*.tsbuildinfo

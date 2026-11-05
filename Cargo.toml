@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = ["contracts/chaperone", "contracts/mock-ft"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/big14way/chaperone"
+
+[workspace.dependencies]
+near-sdk = "=5.30.0"
+near-contract-standards = "=5.30.0"
+near-workspaces = "=0.24.0"
+near-sandbox = "=0.4.0"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+ed25519-dalek = "2"
+base64 = "0.22"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

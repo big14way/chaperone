@@ -1,0 +1,28 @@
+[package]
+name = "chaperone"
+description = "Policy vault for AI agents on NEAR: function-call-key agents, signed risk verdicts, owner caveats."
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk.workspace = true
+near-contract-standards.workspace = true
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }
+near-workspaces.workspace = true
+near-sandbox.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+ed25519-dalek.workspace = true
+base64.workspace = true
+anyhow = "1"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']

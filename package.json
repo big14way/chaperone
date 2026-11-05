@@ -1,0 +1,45 @@
+{
+  "name": "chaperone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Policy wallet on NEAR for AI agents: the agent asks, the policy decides, the owner stays in control.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "build:contracts": "cargo near build non-reproducible-wasm --manifest-path contracts/mock-ft/Cargo.toml && cargo near build non-reproducible-wasm --manifest-path contracts/chaperone/Cargo.toml && mkdir -p contracts/res && cp target/near/chaperone/chaperone.wasm target/near/mock_ft/mock_ft.wasm contracts/res/",
+    "test:contracts": "pnpm build:contracts && cargo test --workspace",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:ts": "vitest run",
+    "check": "pnpm test:contracts && pnpm typecheck && pnpm test:ts",
+    "sandbox": "cargo run -q -p chaperone-sandbox",
+    "checker": "tsx checker/src/server.ts",
+    "demo:dry": "tsx scripts/demo-dry.ts",
+    "demo:attack": "tsx scripts/attack-demo.ts",
+    "demo:legit": "tsx scripts/legit-demo.ts",
+    "deploy:testnet": "bash scripts/deploy-testnet.sh",
+    "setup:testnet": "tsx scripts/setup-testnet.ts",
+    "log": "tsx scripts/print-log.ts",
+    "keygen": "tsx scripts/keygen.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "dependencies": {
+    "bs58": "6.0.0",
+    "near-api-js": "7.4.0",
+    "near-sandbox": "0.3.5",
+    "tweetnacl": "1.0.3"
+  }
+}
