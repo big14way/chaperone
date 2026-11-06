@@ -19,3 +19,4 @@ docs/video/launch/shots/
 docs/video/launch/*.wav
 docs/video/launch/*.jpg
 docs/video/launch/*.png
+deploy/tee/checker-tee.mjs

@@ -1,10 +1,9 @@
 // Counterparty checker service: POST /verdict -> signals -> score -> ed25519-signed verdict.
 import { randomUUID } from "node:crypto";
-import { pathToFileURL } from "node:url";
 import Fastify, { type FastifyInstance } from "fastify";
 import { combineBlocklists, fileBlocklist, supabaseBlocklist, type Blocklist } from "./blocklist.ts";
 import { CodeCache } from "./codecache.ts";
-import { configFromEnv, REPO_ROOT, type CheckerConfig } from "./config.ts";
+import { type CheckerConfig } from "./config.ts";
 import { NearBlocks, defaultNearBlocksUrl } from "./nearblocks.ts";
 import { Rpc } from "./rpc.ts";
 import { assess, type Assessment, type Signals } from "./score.ts";
@@ -127,24 +126,4 @@ export function buildServer(checker: Checker): FastifyInstance {
   );
 
   return app;
-}
-
-async function main() {
-  try {
-    process.loadEnvFile(`${REPO_ROOT}/.env`);
-  } catch {
-    // no .env: rely on the process environment
-  }
-  const config = configFromEnv();
-  const checker = createChecker(config);
-  const app = buildServer(checker);
-  const addr = await app.listen({ host: config.host, port: config.port });
-  console.log(`checker listening on ${addr} (vault ${config.vault}, key ${checker.key.publicKey})`);
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  main().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  });
 }

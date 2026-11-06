@@ -7,9 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx src/server.ts"
+    "start": "tsx src/cli.ts"
   },
   "dependencies": {
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
+    "@phala/dstack-sdk": "0.5.8",
     "bs58": "6.0.0",
     "fastify": "5.12.8",
     "tweetnacl": "1.0.3"

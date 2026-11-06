@@ -108,3 +108,10 @@ fn checker_report_data_binds_vault_and_key() {
     assert_ne!(a, c);
     assert_eq!(&a[32..], &[0u8; 32]);
 }
+
+#[test]
+fn report_data_matches_the_typescript_enclave() {
+    // Same value as checker/test/tee.test.ts: the enclave and the contract must agree byte for byte.
+    let rd = chaperone_tee::report_data_for("chaperone.testnet", &[1u8; 32]);
+    assert_eq!(hex::encode(&rd[..32]), "f63aac1c25490c2b399152a79709a3c8e5a3233edbb8ff84468f97fdd519284b");
+}

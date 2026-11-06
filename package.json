@@ -16,7 +16,7 @@
     "test:ts": "vitest run",
     "check": "pnpm test:contracts && pnpm typecheck && pnpm test:ts && pnpm build:web",
     "sandbox": "cargo run -q -p chaperone-sandbox",
-    "checker": "tsx checker/src/server.ts",
+    "checker": "tsx checker/src/cli.ts",
     "demo:dry": "tsx scripts/demo-dry.ts",
     "demo:attack": "tsx scripts/attack-demo.ts",
     "demo:legit": "tsx scripts/legit-demo.ts",
