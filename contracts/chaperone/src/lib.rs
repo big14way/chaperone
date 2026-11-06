@@ -196,6 +196,10 @@ fn roll_day(agent: &mut Agent, today: u64) {
     }
 }
 
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
 fn emit(event: &str, data: serde_json::Value) {
     env::log_str(&format!(
         "EVENT_JSON:{}",
@@ -619,6 +623,22 @@ impl Chaperone {
             json!({ "policy_version": self.policy_version, "agents": keys.len() }),
         );
         keys.len() as u32
+    }
+
+    /// Replace the contract code (owner only, 1 yoctoNEAR). The new WASM is the raw call input;
+    /// state is kept. With this, the vault account needs no full-access key at all: the deployer
+    /// key can be deleted and upgrades go through the owner, who can already withdraw the funds,
+    /// so no one gains a power they did not have.
+    #[payable]
+    pub fn update_contract(&mut self) -> Promise {
+        self.assert_owner();
+        let code = env::input().unwrap_or_else(|| env::panic_str("no code"));
+        require!(code.len() > 8 && code[..4] == *b"\0asm", "input is not a wasm module");
+        emit(
+            "update_contract",
+            json!({ "size": code.len(), "sha256": hex(&env::sha256(&code)) }),
+        );
+        Promise::new(env::current_account_id()).deploy_contract(code)
     }
 
     /// Move tokens out of the vault to the owner (or `receiver_id`).

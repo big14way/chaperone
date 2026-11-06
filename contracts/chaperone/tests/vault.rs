@@ -589,3 +589,51 @@ async fn gas_allowance_exhaustion_locks_agent_out_until_rekeyed() -> anyhow::Res
     assert_outcome(&again, Outcome::Allow);
     Ok(())
 }
+
+#[tokio::test]
+async fn owner_upgrades_code_and_state_survives_others_cannot() -> anyhow::Result<()> {
+    let env = Env::new().await?;
+    let buyer = env.add_agent("buyer", None, None).await?;
+    env.spend_with(&buyer, env.vendor.id(), 5 * USDC, Verdict::Allow, 5, &[])
+        .await?;
+    let before: VaultInfo = env.view("get_info", json!({})).await?;
+    let code = wasm("chaperone");
+
+    // A stranger cannot replace the code.
+    let res = env
+        .attacker
+        .call(env.vault.id(), "update_contract")
+        .args(code.clone())
+        .deposit(ONE_YOCTO)
+        .max_gas()
+        .transact()
+        .await?;
+    assert!(res.is_failure(), "non-owner upgrade must fail");
+
+    // Garbage input is refused even from the owner.
+    let res = env
+        .owner
+        .call(env.vault.id(), "update_contract")
+        .args(b"not wasm at all".to_vec())
+        .deposit(ONE_YOCTO)
+        .max_gas()
+        .transact()
+        .await?;
+    assert!(res.is_failure(), "non-wasm input must fail");
+
+    // The owner can, and the vault keeps its state.
+    let res = env
+        .owner
+        .call(env.vault.id(), "update_contract")
+        .args(code)
+        .deposit(ONE_YOCTO)
+        .max_gas()
+        .transact()
+        .await?;
+    assert!(res.is_success(), "owner upgrade failed: {res:?}");
+    let after: VaultInfo = env.view("get_info", json!({})).await?;
+    assert_eq!(after.log_len, before.log_len);
+    assert_eq!(after.agents, before.agents);
+    assert_eq!(after.owner, before.owner);
+    Ok(())
+}

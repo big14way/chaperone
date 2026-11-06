@@ -167,6 +167,31 @@ ed25519:DonRRpPkyGzaHhQZu8NwM8Er4ua53dffy3zabHEZLUsf
 - **No deposit**: function-call keys cannot attach NEAR, so `ft_transfer` (1 yoctoNEAR) is impossible from the key.
 - **allowance** 0.5 NEAR of gas (default, set per agent): a runaway loop burns at most this. When it is used up the key is locked out until the owner re-keys it (covered by the `gas_allowance_exhaustion_locks_agent_out_until_rekeyed` test).
 - **Revocation**: `revoke_agent(pk)` deletes one key; `revoke_all()` deletes all agent keys and cancels parked requests.
+- **The vault account itself holds no full-access key.** After deployment the deployer key was deleted (`pnpm lock:testnet`, [tx](https://testnet.nearblocks.io/txns/HQxWzP1XzHE1catR1CLm77bAGRtopp5UNcVzpZL3wxif)). The only keys on `chaperone.testnet` are the agents' function-call keys, so nobody can sign for the vault outside the contract's rules. Code upgrades go through `update_contract`, which only the owner can call with 1 yoctoNEAR (`pnpm upgrade:testnet`, first used in [this tx](https://testnet.nearblocks.io/txns/FAbnY5r7Un7EsfJ3wqf4fB3kR6c1AsVyATAZSUjyaScT)). The owner can already withdraw the funds, so this gives nobody a new power.
+
+Check it yourself:
+
+```bash
+curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"view_access_key_list","finality":"final","account_id":"chaperone.testnet"}}'
+```
+
+## Risk signals and their data sources
+
+The checker scores the recipient from these signals before signing a verdict. Every source is public and free.
+
+| Signal | Source | How it is read |
+|---|---|---|
+| Account exists | NEAR RPC | `view_account` |
+| Account age | NearBlocks API v3 when `NEARBLOCKS_API_KEY` is set (`/v3/accounts/{id}` creation time); otherwise NEAR RPC | RPC fallback: `view_access_key_list`; a new key's nonce is `block_height * 1e6`, so the smallest nonce dates the account (`checker/src/signals.ts`) |
+| Activity (transaction count) | NearBlocks v3 `/v3/accounts/{id}/txns` (one page, capped at 25); otherwise NEAR RPC | RPC fallback: sum of access-key nonce deltas = transactions signed |
+| Is a contract | NEAR RPC | `view_account.code_hash` is not the empty hash |
+| Contract code changed recently | NEAR RPC + checker cache | `code_hash` observed over time (`checker/src/codecache.ts`); a contract younger than a day counts as changed |
+| Prior interactions agent to recipient | The vault contract | `get_log` (settled and blocked payments to this recipient) and `get_first_seen` |
+| Amount vs this agent's 7-day mean | The vault contract | `get_log`, settled spends by the same agent key in the last 7 days |
+| Shared blocklist with evidence | JSON file (`fixtures/blocklist.json`) and/or a Supabase table `blocklist(account_id, reason, evidence, reported_at)` | `checker/src/blocklist.ts` |
+| Recipient allowlisted by the owner | The vault contract | `get_policy.allow_recipients` |
+
 
 ## Policy reference
 
@@ -184,6 +209,8 @@ Set at `new(owner, checker_pk, policy)` and changed with `set_policy` (owner onl
 Risk bands (checker): score < 30 allow, 30–70 warn, > 70 block. Hard block regardless of score: recipient does not exist, blocklisted, contract code changed in the last 24 h, account younger than a day receiving more than 10% of the daily cap.
 
 Contract reason codes: `BAD_VERDICT`, `BAD_SIGNATURE`, `VERDICT_EXPIRED`, `VERDICT_TTL_TOO_LONG`, `NONCE_REUSED`, `RISK_BLOCK`, `RISK_WARN`, `ZERO_AMOUNT`, `SELF_RECIPIENT`, `TOKEN_NOT_ALLOWED`, `PER_TX_CAP`, `DAILY_CAP`, `RECIPIENT_TIMELOCK`, `PENDING_EXISTS`, `PENDING_EXPIRED`, `OWNER_APPROVED`, plus the checker's reasons.
+
+Owner: `approve`, `reject`, `set_policy`, `set_checker`, `add_agent`, `revoke_agent`, `revoke_all`, `withdraw`, `update_contract` (all need 1 yoctoNEAR, which only a full-access key can attach).
 
 Views: `get_info`, `get_policy`, `get_agent`, `get_agents`, `get_pending`, `get_log`, `get_first_seen`, `get_verdict_message`.
 
