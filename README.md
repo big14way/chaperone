@@ -6,7 +6,16 @@ Chaperone is a policy vault on NEAR for AI agents. The agent holds only a functi
 
 ## Problem
 
-An agent with a private key is a system where a paragraph of text can move money. A prompt-injected web page, email or invoice can tell the agent to "pay this address instead", and a full-access key will do it. Telling the model to be careful is not enough. The limits have to live somewhere the model cannot reach.
+An agent with a private key is a system where a paragraph of text can move money. This is not hypothetical:
+
+- **Nov 2024:** the Freysa agent was talked into releasing a guarded prize pool of about $47,000 on the 482nd attempt ([The Block](https://www.theblock.co/post/328747)).
+- **Mar 2025:** an attacker queued two prompts into the AIXBT agent and took about 55 ETH ([Cointelegraph](https://cointelegraph.com/news/hacker-breaches-ai-crypto-bot-aixbt-steals-55-eth)).
+- **May 2026:** a Morse-code reply on X made Grok and Bankrbot send about $150,000 to $200,000 of tokens to an attacker ([OECD AI incident](https://oecd.ai/en/incidents/2026-05-04-4a73)).
+- **Off-chain, the same trick:** "the bank details changed" invoice fraud cost businesses $3.046 billion across 24,768 FBI complaints in 2025 ([IC3 2025 coverage](https://www.mcdonaldhopkins.com/insights/news/the-sobering-truth-of-the-fbis-2025-internet-crime-complaint-center-report)). An AI agent that pays invoices obeys that hidden line every time.
+
+Better prompts do not fix this (Princeton's study of agent memory injection is titled *No Silver Bullet*, [arXiv 2503.16248](https://arxiv.org/html/2503.16248v1)), and approving every payment by hand defeats the point of an agent. The limits have to live somewhere the model cannot reach. NEAR's founder named the same need: security is "the biggest bottleneck right now", with policies on agent keys such as "spend $100 a day on unknown addresses" ([Bankless, March 24, 2026](https://www.bankless.com/podcast/illia-polosukhin-near-founder-on-ironclaw)).
+
+Full write-up with every source, who gets hurt, and how each incident maps to a Chaperone control: [docs/PROBLEM.md](docs/PROBLEM.md).
 
 ## How it works
 
@@ -194,6 +203,14 @@ deployments/          deployed contract records
 - **agents**: the agent runtime and tools, and two agents (buyer, researcher) sharing one vault with separate caps. This is the policy layer a swarm-for-hire needs.
 - **defi**: a NEP-141 USDC treasury with programmable spend rules.
 - **business**: an accounts-payable agent that can pay vendors without being able to be talked into paying anyone else.
+
+## Business model
+
+The vault contract is open source and free to deploy. Proposed revenue, from the parts that need operating: a hosted risk checker (free tier, then a per-verdict fee of fractions of a cent or a monthly team plan), a shared threat feed built from every vault's refusals (licensed to wallets, agent frameworks and exchanges), and team features (multiple approvers, approval routing, audit exports). Customers: teams whose agents spend money, such as accounts-payable agents, research agents buying data, treasury agents and agent marketplaces.
+
+## Sponsors and bounties
+
+None. This hackathon has no sponsor bounties and we did not apply to any. Everything runs on free infrastructure: NEAR testnet, Circle testnet USDC, FastNEAR RPC, NearBlocks API v3, Meteor and Intear wallets, and optionally NEAR AI Cloud for the agent's model.
 
 ## NEAR's role, concretely
 
