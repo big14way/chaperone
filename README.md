@@ -69,7 +69,7 @@ pnpm demo:dry
   ok   kill switch
 ```
 
-Run everything (contract build, 18 Rust tests including 14 sandbox tests, typecheck, 33 TypeScript tests, dashboard build):
+Run everything (contract builds; 31 Rust tests: 18 sandbox tests of the vault and the registry, 9 attestation-verifier tests against a real Intel TDX quote, 4 unit tests; typecheck; 37 TypeScript tests; dashboard build):
 
 ```bash
 pnpm check
@@ -85,6 +85,7 @@ Deployed vault: **`chaperone.testnet`**. The full record, including agent public
 | Owner | `chaperone-owner.testnet` |
 | Allowlisted vendor | `chaperone-vendor.testnet` |
 | Attacker (demo) | `chaperone-attacker.testnet` |
+| Shared blocklist registry | `chaperone-registry.testnet` (owner `chaperone-owner.testnet`) |
 | Token | Circle testnet USDC `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af` |
 
 Policy: daily cap 100 USDC, per-tx cap 50 USDC, recipient allowlist `[chaperone-vendor.testnet]`, 24 h timelock for new recipients, owner approval required on warn.
@@ -93,10 +94,11 @@ To deploy your own:
 
 ```bash
 cp .env.example .env
-pnpm accounts:testnet        # creates <prefix>, <prefix>-owner, -vendor, -attacker via the testnet faucet
+pnpm accounts:testnet        # creates <prefix>, <prefix>-owner, -vendor, -attacker, -registry via the testnet faucet
 pnpm keygen >> .env          # checker signing key
 pnpm deploy:testnet          # cargo near deploy + init
 pnpm setup:testnet           # storage_deposit, add agents, write deployments/testnet.json
+pnpm deploy:registry         # optional: your own shared blocklist (or read chaperone-registry.testnet)
 NEAR_NETWORK=testnet pnpm demo:attack
 NEAR_NETWORK=testnet pnpm demo:legit   # needs at least 6 USDC in the vault: send it from faucet.circle.com straight to the vault account
 ```
@@ -214,7 +216,7 @@ pnpm web            # http://localhost:3000, reads chaperone.testnet over public
 pnpm demo:warn      # buyer asks for 10 USDC against a 6 USDC average: WARN, parked for the owner
 ```
 
-The dashboard (`web/`, Next.js static export with NEAR Wallet Selector) shows the vault balance, requests waiting for the owner, the on-chain decision log, agents with their daily spend, and the policy. Connect the owner account (Meteor Wallet or Intear Wallet; MyNearWallet stopped app connections on 1 Nov 2026) to approve or reject parked requests, edit the policy, revoke one agent, or hit the kill switch (`revoke_all`). Every owner method attaches 1 yoctoNEAR, which a function-call key cannot do, so each action is confirmed in the wallet. Point it at another vault with `NEXT_PUBLIC_VAULT_ID` (see `web/.env.example`).
+The dashboard (`web/`, Next.js static export with NEAR Wallet Selector) shows the vault balance, requests waiting for the owner, the on-chain decision log, agents with their daily spend, the policy, and whether the checker key is TEE-attested. Connect the owner account (Meteor Wallet or Intear Wallet; MyNearWallet stopped app connections on 1 Nov 2026) to approve or reject parked requests, edit the policy, revoke one agent, or hit the kill switch (`revoke_all`). Every owner method attaches 1 yoctoNEAR, which a function-call key cannot do, so each action is confirmed in the wallet. Point it at another vault with `NEXT_PUBLIC_VAULT_ID` (see `web/.env.example`).
 
 Real run on testnet: `pnpm demo:warn` parked request #4 (buyer, 10 USDC, 1.7x its 7-day average, WARN). The owner approved it from the dashboard with Meteor Wallet ([approve tx](https://testnet.nearblocks.io/txns/AnasHmVeU5xCGPLaLskoyoTMRdgjrky5ZrA7W6kez25d)); the vault logged `APPROVED` with `OWNER_APPROVED` and the transfer settled.
 
@@ -241,6 +243,44 @@ curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"view_access_key_list","finality":"final","account_id":"chaperone.testnet"}}'
 ```
 
+## TEE-attested checker
+
+The checker's signing key is the one secret the vault trusts. Whoever holds it can sign "allow". In TEE mode the vault accepts verdicts only from a key that was created inside an Intel TDX confidential VM running a checker image the owner approved. The vault checks this proof itself, on chain, before it trusts the key.
+
+1. At boot the checker (`checker/src/tee-server.ts`, image `deploy/tee/Dockerfile`, dstack, e.g. on Phala Cloud) generates its ed25519 key in enclave memory. It asks the TDX module for a quote whose report data is `sha256("chaperone-checker-v1:" || vault || ":" || public_key)`. The quote is bound to this vault and this key. A restart makes a new key, which must be registered again.
+2. `GET /attestation` returns the quote, the TCB info and its event log. Anyone can submit them to `register_checker`.
+3. The vault (`crates/chaperone-tee`, using `dcap-qvl`) verifies, in this order:
+   - the quote against Intel's DCAP certificate chain with the supplied collateral, at block time;
+   - the TCB status (`UpToDate` unless the owner allows more);
+   - the report data equals the binding for this vault and key;
+   - MRTD and RTMR0-3 match, and RTMR3 replays from the event log;
+   - the `compose-hash` event equals sha256 of the app-compose. The app-compose pins the container image by digest, and the owner approved it;
+   - firmware, kernel and OS measurements match an approved set.
+4. If every check passes, the key becomes the checker key. While a TEE policy is set, `set_checker` is disabled and any other key's verdicts are refused with `CHECKER_NOT_ATTESTED`.
+
+A real dstack TDX quote (from NEAR AI Cloud) verifies in the sandbox contract for 184 Tgas, under the 300 Tgas limit (`register_checker_verifies_a_real_tdx_quote_on_chain`). Nine more tests cover forged quotes, another report-data binding, an unapproved image or OS, a tampered event log and expired collateral (`crates/chaperone-tee/tests`). The checks follow NEAR's `shade-attestation` crate. That crate's pinned dependencies conflict with near-sdk 5.30, so the code is ported, not imported.
+
+```bash
+pnpm tee compose <registry/image@sha256:...>   # deploy/tee/docker-compose.yml, image pinned by digest
+pnpm tee attest https://<checker-in-tee>       # fetch attestation + fresh Intel collateral, verify locally with the same Rust code
+pnpm tee policy                                # owner: approve that image and OS (set_checker_tee_policy)
+pnpm tee register                              # register_checker: the vault verifies the quote and adopts the key
+pnpm tee status                                # get_checker_tee; also shown on the dashboard
+```
+
+Status on testnet: the contract code with `register_checker` is live on `chaperone.testnet` (upgraded through the owner, [tx](https://testnet.nearblocks.io/txns/FbCkLkYKAPaohUdzj1bdT9APUjG2iTSnq1MSHFZC5gxg)). TEE mode stays off until the enclave is deployed, so the hosted checker's key is still the one the owner set. `pnpm tee status` and the dashboard show which mode is active.
+
+## Shared blocklist registry
+
+`chaperone-registry.testnet` (`contracts/registry`) is one public list of accounts that take money they should not: payment-redirect scams, drainers. Trusted reporters, such as vault owners and checker operators the registry owner adds, flag an account with a reason code and evidence. Anyone can read the list. A flag can be cleared by the reporter who filed it or by the registry owner. Every checker reads the registry by default, the hosted one and the TEE one included, so one flag blocks the account for every vault. If the registry cannot be read, the checker returns an error and signs nothing. The attacker from the demo is flagged with the vault log entries as evidence:
+
+```bash
+pnpm registry list                       # chaperone-attacker.testnet  PAYMENT_REDIRECT_SCAM  by chaperone-owner.testnet
+pnpm registry report <account> <REASON> <evidence>
+pnpm registry add-reporter <account>     # registry owner: trust another vault owner
+curl -s https://getchaperone.vercel.app/api/health   # "blocklist": "bundled:fixtures/blocklist.json+near:chaperone-registry.testnet"
+```
+
 ## Risk signals and their data sources
 
 The checker scores the recipient from these signals before signing a verdict. Every source is public and free.
@@ -254,7 +294,7 @@ The checker scores the recipient from these signals before signing a verdict. Ev
 | Contract code changed recently | NEAR RPC + checker cache | `code_hash` observed over time (`checker/src/codecache.ts`); a contract younger than a day counts as changed |
 | Prior interactions agent to recipient | The vault contract | `get_log` (settled and blocked payments to this recipient) and `get_first_seen` |
 | Amount vs this agent's 7-day mean | The vault contract | `get_log`, settled spends by the same agent key in the last 7 days |
-| Shared blocklist with evidence | JSON file (`fixtures/blocklist.json`) and/or a Supabase table `blocklist(account_id, reason, evidence, reported_at)` | `checker/src/blocklist.ts` |
+| Shared blocklist with evidence | The registry contract `chaperone-registry.testnet` (`get_flag`), plus a local JSON file (`fixtures/blocklist.json`) and optionally a Supabase table | `checker/src/blocklist.ts` |
 | Recipient allowlisted by the owner | The vault contract | `get_policy.allow_recipients` |
 
 
@@ -273,30 +313,35 @@ Set at `new(owner, checker_pk, policy)` and changed with `set_policy` (owner onl
 
 Risk bands (checker): score < 30 allow, 30–70 warn, > 70 block. Hard block regardless of score: recipient does not exist, blocklisted, contract code changed in the last 24 h, account younger than a day receiving more than 10% of the daily cap.
 
-Contract reason codes: `BAD_VERDICT`, `BAD_SIGNATURE`, `VERDICT_EXPIRED`, `VERDICT_TTL_TOO_LONG`, `NONCE_REUSED`, `RISK_BLOCK`, `RISK_WARN`, `ZERO_AMOUNT`, `SELF_RECIPIENT`, `TOKEN_NOT_ALLOWED`, `PER_TX_CAP`, `DAILY_CAP`, `RECIPIENT_TIMELOCK`, `PENDING_EXISTS`, `PENDING_EXPIRED`, `OWNER_APPROVED`, plus the checker's reasons.
+Contract reason codes: `BAD_VERDICT`, `BAD_SIGNATURE`, `CHECKER_NOT_ATTESTED`, `VERDICT_EXPIRED`, `VERDICT_TTL_TOO_LONG`, `NONCE_REUSED`, `RISK_BLOCK`, `RISK_WARN`, `ZERO_AMOUNT`, `SELF_RECIPIENT`, `TOKEN_NOT_ALLOWED`, `PER_TX_CAP`, `DAILY_CAP`, `RECIPIENT_TIMELOCK`, `PENDING_EXISTS`, `PENDING_EXPIRED`, `OWNER_APPROVED`, plus the checker's reasons.
 
-Owner: `approve`, `reject`, `set_policy`, `set_checker`, `add_agent`, `revoke_agent`, `revoke_all`, `withdraw`, `update_contract` (all need 1 yoctoNEAR, which only a full-access key can attach).
+Owner: `approve`, `reject`, `set_policy`, `set_checker`, `set_checker_tee_policy`, `add_agent`, `revoke_agent`, `revoke_all`, `withdraw`, `update_contract` (all need 1 yoctoNEAR, which only a full-access key can attach). Anyone: `register_checker` (the attestation is the authority).
 
-Views: `get_info`, `get_policy`, `get_agent`, `get_agents`, `get_pending`, `get_log`, `get_first_seen`, `get_verdict_message`.
+Views: `get_info`, `get_policy`, `get_agent`, `get_agents`, `get_pending`, `get_log`, `get_first_seen`, `get_verdict_message`, `get_checker_tee`.
 
-Checker HTTP: `GET /health`, `POST /verdict`. Hosted at `https://getchaperone.vercel.app/api` (same code, deployed by `pnpm deploy:web`); run your own with `pnpm checker`.
+Checker HTTP: `GET /health`, `POST /verdict`, and `GET /attestation` when running in a TEE. Hosted at `https://getchaperone.vercel.app/api` (same code, deployed by `pnpm deploy:web`); run your own with `pnpm checker`.
 
 ## Repository layout
 
 ```
 contracts/chaperone   vault contract (Rust) and near-workspaces tests (tests/vault.rs)
+contracts/registry    shared blocklist registry contract and its sandbox tests
 contracts/mock-ft     NEP-141 token used by the sandbox
-checker/              risk checker: signals, scoring, signed verdicts, HTTP server
+crates/chaperone-tee  Intel TDX (dstack) attestation verifier used by the vault, with real-quote tests
+tools/attest          CLI: fetch Intel collateral for a quote, verify an attestation locally
+checker/              risk checker: signals, scoring, signed verdicts, HTTP server, TEE entry point
 agent/                agent runtime: read_page + chaperone_pay tools, LLM or scripted brain
-scripts/              demo:dry, demo:attack, demo:legit, demo:warn, testnet account/deploy/setup, log printer
+scripts/              demos, testnet account/deploy/setup/upgrade, tee (attest/policy/register), registry, log printer
 web/                  owner dashboard: approvals, decision log, agents, policy editor (Next.js)
 fixtures/             poisoned and clean vendor pages, demo blocklist
+deploy/tee/           checker container image for a dstack confidential VM
 deployments/          deployed contract records
+docs/                 problem research, video configs
 ```
 
 ## Tracks
 
-- **security** (primary): an allow/warn/block risk service (hosted at getchaperone.vercel.app/api), a wallet wrapper that refuses on block and asks a human on warn, function-call key limits, a vault with no full-access key, TEE attestation of the agent's model, and an on-chain attack log.
+- **security** (primary): an allow/warn/block risk service (hosted at getchaperone.vercel.app/api), a wallet wrapper that refuses on block and asks a human on warn, function-call key limits, a vault with no full-access key, a TEE-attested checker whose Intel TDX quote the vault verifies on chain, TEE attestation of the agent's model, a shared on-chain blocklist, and an on-chain attack log.
 - **agents**: the agent runtime and tools, an MCP server so any agent can use a Chaperone wallet, and two agents (buyer, researcher) sharing one vault with separate caps. This is the policy layer a swarm-for-hire needs.
 - **defi**: a NEP-141 USDC treasury with programmable spend rules, and agent swaps through NEAR Intents (1Click) gated by the same caps, an asset allowlist, output-to-vault and a quote-loss check.
 - **business**: an accounts-payable agent that can pay vendors without being able to be talked into paying anyone else.
@@ -316,12 +361,14 @@ None. This hackathon has no sponsor bounties and we did not apply to any. Everyt
 - **`env::ed25519_verify`** checks the checker's signed verdict on chain, with nonce and expiry stored in contract state.
 - **Block timestamps** drive the daily budget buckets and the timelock.
 - **NEAR AI Cloud TEE attestation**: with a NEAR AI model, the agent fetches the model's attestation report with a fresh nonce and refuses to act unless the Intel TDX quote binds that nonce and the model's signing address.
+- **On-chain TDX attestation**: `register_checker` verifies an Intel DCAP quote, the dstack event log and the approved image inside the contract (184 Tgas), so the vault, not an off-chain service, decides which checker key to trust.
+- **A shared registry contract**: one public blocklist that every checker reads and trusted reporters write, with evidence on chain.
 - **No full-access key on the vault**: the deployer key was deleted; upgrades go through the owner-only `update_contract`.
 - **NEAR Intents**: agent swaps are quoted through the 1Click API under the vault's policy.
 
 ## Libraries and AI-generated code
 
-Web: `next`, `react`, `tailwindcss`, Inter Tight and JetBrains Mono (Google Fonts, OFL), `@near-wallet-selector/core`, `@near-wallet-selector/meteor-wallet`, `@near-wallet-selector/intear-wallet`. Contract: `near-sdk`, `near-contract-standards`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`.
+Web: `next`, `react`, `tailwindcss`, Inter Tight and JetBrains Mono (Google Fonts, OFL), `@near-wallet-selector/core`, `@near-wallet-selector/meteor-wallet`, `@near-wallet-selector/intear-wallet`. Contract: `near-sdk`, `near-contract-standards`, `dcap-qvl` (Intel DCAP quote verification), `sha2`, `hex`, `borsh`, `getrandom`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. Attestation CLI: `dcap-qvl`, `tokio`, `anyhow`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `@phala/dstack-sdk`, `@noble/hashes`, `@noble/curves`, `@modelcontextprotocol/sdk`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`, `esbuild`; image base `node:22-slim`.
 
 Much of the code in this repository was written with AI coding assistants under the author's direction, and was reviewed and tested by the author.
 

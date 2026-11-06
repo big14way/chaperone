@@ -4,6 +4,17 @@
   "owner": "chaperone-owner.testnet",
   "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
   "checker_pk": "ed25519:36jsg1kF4JaEgojymtmmRRovkUdKNtkxdNL6QHh8BvqG",
+  "registry": {
+    "account": "chaperone-registry.testnet",
+    "owner": "chaperone-owner.testnet",
+    "seed_flag_tx": "DBCMum5cgV3zoidQrmBSbbbSzQPiDgSkBLy6DShwPyYn"
+  },
+  "upgrades": [
+    {
+      "tx": "FbCkLkYKAPaohUdzj1bdT9APUjG2iTSnq1MSHFZC5gxg",
+      "note": "TEE-attested checker support (register_checker, set_checker_tee_policy, get_checker_tee)"
+    }
+  ],
   "agents": [
     {
       "label": "buyer",
