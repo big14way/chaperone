@@ -3,7 +3,8 @@ import { explorerAccount } from "@/lib/config";
 import { ago, amount, tokenName, until } from "@/lib/format";
 import { reasons } from "@/lib/reasons";
 import type { AgentView, Policy, SpendRequest } from "@/lib/types";
-import { AgentAvatar, Button, Card, Check, SectionHead } from "./ui";
+import { AgentBadge, Icon, RecipientBadge } from "./glyphs";
+import { ArrowLink, Button, Card, CheckItem } from "./ui";
 
 export type Act = (label: string, method: string, args: Record<string, unknown>) => Promise<void>;
 
@@ -14,113 +15,136 @@ export interface OwnerProps {
   act: Act;
 }
 
-export function Approvals({
-  pending,
-  agents,
-  policy,
-  ...owner
-}: OwnerProps & { pending: SpendRequest[]; agents: AgentView[]; policy: Policy }) {
+export function Approvals({ pending, agents, policy, ...owner }: OwnerProps & { pending: SpendRequest[]; agents: AgentView[]; policy: Policy }) {
   return (
-    <section id="approvals">
-      <SectionHead
-        index="01 · Needs you"
-        title={pending.length ? `${pending.length} payment${pending.length > 1 ? "s" : ""} waiting for approval` : "Nothing waiting for you"}
-      />
-      {pending.length === 0 ? (
-        <Card className="flex items-center gap-4 p-5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-good-bg text-good">
-            <svg width="18" height="18" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="M2.5 6.2l2.3 2.3 4.7-4.9" />
-            </svg>
-          </span>
-          <p className="text-sm text-muted">
-            When the risk checker flags a payment as unusual, the vault holds it here instead of paying. Nothing moves until you decide.
+    <section id="approvals" className="scroll-mt-20 border-b border-line py-20 sm:py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:gap-20">
+        <div>
+          <div className="eyebrow">01 · Approvals</div>
+          <h2 className="title mt-5 text-[40px] sm:text-[56px]">
+            {pending.length ? (
+              <>
+                Nothing moves
+                <br />
+                until you say so.
+              </>
+            ) : (
+              <>
+                All clear.
+                <br />
+                Nothing is waiting.
+              </>
+            )}
+          </h2>
+          <p className="mt-6 max-w-md text-[17px] leading-[1.6] text-muted sm:text-[18px]">
+            When the risk checker finds a payment unusual, the vault parks it instead of paying. You see why, then approve or reject with your
+            wallet. Requests expire after 24 hours.
           </p>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {pending.map((p) => (
-            <Request key={p.id} req={p} agent={agents.find((a) => a.public_key === p.agent_pk)} policy={policy} {...owner} />
-          ))}
+          <div className="mt-8">
+            <ArrowLink href="#activity">See every decision</ArrowLink>
+          </div>
         </div>
-      )}
+
+        <div className="space-y-6">
+          {pending.length === 0 ? (
+            <Card className="p-7">
+              <div className="flex items-center gap-4">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-good-bg text-good">
+                  <Icon name="check" size={20} />
+                </span>
+                <div>
+                  <div className="text-[17px] font-light">No requests waiting</div>
+                  <div className="text-[14px] text-muted">Agents are paying inside your rules.</div>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            pending.map((p) => <Request key={p.id} req={p} agent={agents.find((a) => a.public_key === p.agent_pk)} policy={policy} {...owner} />)
+          )}
+        </div>
+      </div>
     </section>
   );
 }
 
 function Request({ req, agent, policy, isOwner, connected, busy, act }: OwnerProps & { req: SpendRequest; agent?: AgentView; policy: Policy }) {
   const amt = BigInt(req.amount);
+  const token = tokenName(req.token);
   const perTx = BigInt(agent?.per_tx_cap ?? policy.per_tx_cap);
   const remaining = agent ? BigInt(agent.remaining_today) : null;
   const flagged = reasons(req.reasons.filter((c) => c !== "RISK_WARN"));
   const approveLabel = `Approve #${req.id}`;
   const rejectLabel = `Reject #${req.id}`;
+  const allowlisted = policy.allow_recipients.includes(req.recipient);
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b border-line bg-warn-bg/60 px-5 py-2.5">
-        <span className="flex items-center gap-2 text-[13px] font-medium text-warn">
-          <span className="live-dot h-1.5 w-1.5 rounded-full bg-warn" />
-          Held for review · risk score {req.score}/100
+    <Card className="rise overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-line px-7 py-4">
+        <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.14em] text-warn uppercase">
+          <span className="blink h-1.5 w-1.5 rounded-full bg-warn" />
+          Waiting for you
         </span>
-        <span className="tnum text-xs text-muted">
-          request #{req.id} · {ago(req.created_ms)} · expires {until(req.expires_ms)}
+        <span className="tnum text-[12px] text-muted">
+          #{req.id} · {ago(req.created_ms)} · expires {until(req.expires_ms)}
         </span>
       </div>
 
-      <div className="grid gap-6 p-5 md:grid-cols-[1fr_280px]">
-        <div>
+      <div className="p-7">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <AgentAvatar label={req.agent_label} />
-            <div className="text-[15px] leading-snug">
-              <span className="font-medium">{req.agent_label}</span> <span className="text-muted">wants to pay</span>
-              <div>
-                <a className="font-mono text-[13px] underline decoration-line-strong underline-offset-4 hover:decoration-ink" href={explorerAccount(req.recipient)} target="_blank" rel="noreferrer">
-                  {req.recipient}
-                </a>
-              </div>
+            <AgentBadge label={req.agent_label} />
+            <div>
+              <div className="text-[16px] font-normal capitalize">{req.agent_label}</div>
+              <div className="text-[13px] text-muted">wants to pay</div>
             </div>
           </div>
-
-          <div className="mt-5 flex items-baseline gap-2">
-            <span className="tnum text-4xl font-medium tracking-tight">{amount(amt)}</span>
-            <span className="text-lg text-muted">{tokenName(req.token)}</span>
-            {req.memo && <span className="ml-2 rounded-md bg-sunken px-2 py-0.5 font-mono text-xs text-muted">{req.memo}</span>}
+          <div className="text-right">
+            <div className="tnum text-[40px] leading-none font-light tracking-[-0.03em]">{amount(amt)}</div>
+            <div className="mt-1 text-[13px] text-muted">{token}</div>
           </div>
+        </div>
 
-          <ul className="mt-5 space-y-2">
+        <div className="mt-6 flex items-center gap-3 rounded-xl bg-sunken px-4 py-3">
+          <RecipientBadge kind={allowlisted ? "allowlisted" : "unknown"} size={36} />
+          <div className="min-w-0 flex-1">
+            <a className="block truncate font-mono text-[13px] text-ink hover:underline" href={explorerAccount(req.recipient)} target="_blank" rel="noreferrer">
+              {req.recipient}
+            </a>
+            <div className="text-[12px] text-muted">{allowlisted ? "On your allowlist" : "Not on your allowlist"}</div>
+          </div>
+          {req.memo && <span className="font-mono text-[11px] text-muted">{req.memo}</span>}
+        </div>
+
+        <div className="mt-6">
+          <div className="eyebrow-sm">Why it was held · risk {req.score}/100</div>
+          <ul className="mt-3 space-y-2.5">
             {flagged.map((r) => (
-              <Check key={r.code} tone={r.tone}>
+              <CheckItem key={r.code} tone={r.tone}>
                 {r.text}
-              </Check>
+              </CheckItem>
             ))}
-            <Check tone={amt <= perTx ? "good" : "bad"}>
-              Within the {amount(perTx)} {tokenName(req.token)} per-payment cap
-            </Check>
+            <CheckItem tone={amt <= perTx ? "good" : "bad"}>
+              Within the {amount(perTx)} {token} per-payment cap
+            </CheckItem>
             {remaining !== null && (
-              <Check tone={amt <= remaining ? "good" : "bad"}>
-                Fits today&apos;s remaining budget ({amount(remaining)} left)
-              </Check>
+              <CheckItem tone={amt <= remaining ? "good" : "bad"}>
+                Fits today&apos;s remaining budget of {amount(remaining)} {token}
+              </CheckItem>
             )}
           </ul>
         </div>
 
-        <div className="flex flex-col justify-between gap-4 rounded-xl bg-sunken p-4">
-          <p className="text-[13px] leading-relaxed text-muted">
-            Approving pays the recipient from the vault and counts toward {req.agent_label}&apos;s daily budget. Rejecting closes the request; the agent can ask again.
-          </p>
-          <div className="space-y-2">
-            <Button size="lg" className="w-full" disabled={!isOwner || !!busy} onClick={() => act(approveLabel, "approve", { request_id: req.id })}>
-              {busy === approveLabel ? "Confirm in your wallet…" : `Approve and pay ${amount(amt)} ${tokenName(req.token)}`}
-            </Button>
-            <Button size="lg" variant="secondary" className="w-full" disabled={!isOwner || !!busy} onClick={() => act(rejectLabel, "reject", { request_id: req.id })}>
-              {busy === rejectLabel ? "Confirm in your wallet…" : "Reject"}
-            </Button>
-            {!isOwner && (
-              <p className="pt-1 text-center text-xs text-muted">{connected ? "Only the vault owner can decide." : "Connect the owner wallet to decide."}</p>
-            )}
-          </div>
+        <div className="mt-7 grid grid-cols-[1fr_auto] gap-2.5">
+          <Button variant="lime" size="lg" disabled={!isOwner || !!busy} onClick={() => act(approveLabel, "approve", { request_id: req.id })}>
+            {busy === approveLabel ? "Confirm in your wallet…" : `Approve and pay ${amount(amt)} ${token}`}
+          </Button>
+          <Button variant="white" size="lg" disabled={!isOwner || !!busy} onClick={() => act(rejectLabel, "reject", { request_id: req.id })}>
+            {busy === rejectLabel ? "Confirm…" : "Reject"}
+          </Button>
         </div>
+        {!isOwner && (
+          <p className="mt-3 text-center text-[13px] text-muted">{connected ? "Only the vault owner can decide." : "Connect the owner wallet to decide."}</p>
+        )}
       </div>
     </Card>
   );

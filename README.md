@@ -137,6 +137,8 @@ pnpm demo:warn      # buyer asks for 10 USDC against a 6 USDC average: WARN, par
 
 The dashboard (`web/`, Next.js static export with NEAR Wallet Selector) shows the vault balance, requests waiting for the owner, the on-chain decision log, agents with their daily spend, and the policy. Connect the owner account (Meteor Wallet or Intear Wallet; MyNearWallet stopped app connections on 1 Nov 2026) to approve or reject parked requests, edit the policy, revoke one agent, or hit the kill switch (`revoke_all`). Every owner method attaches 1 yoctoNEAR, which a function-call key cannot do, so each action is confirmed in the wallet. Point it at another vault with `NEXT_PUBLIC_VAULT_ID` (see `web/.env.example`).
 
+Real run on testnet: `pnpm demo:warn` parked request #4 (buyer, 10 USDC, 1.7x its 7-day average, WARN). The owner approved it from the dashboard with Meteor Wallet ([approve tx](https://testnet.nearblocks.io/txns/AnasHmVeU5xCGPLaLskoyoTMRdgjrky5ZrA7W6kez25d)); the vault logged `APPROVED` with `OWNER_APPROVED` and the transfer settled.
+
 ## Key limits explained
 
 Each agent key is added by the vault to itself (`add_agent`) as a NEAR function-call access key. On testnet:
@@ -203,7 +205,7 @@ deployments/          deployed contract records
 
 ## Libraries and AI-generated code
 
-Web: `next`, `react`, `tailwindcss`, `@near-wallet-selector/core`, `@near-wallet-selector/meteor-wallet`, `@near-wallet-selector/intear-wallet`. Contract: `near-sdk`, `near-contract-standards`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`.
+Web: `next`, `react`, `tailwindcss`, Inter Tight and JetBrains Mono (Google Fonts, OFL), `@near-wallet-selector/core`, `@near-wallet-selector/meteor-wallet`, `@near-wallet-selector/intear-wallet`. Contract: `near-sdk`, `near-contract-standards`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`.
 
 Much of the code in this repository was written with AI coding assistants under the author's direction, and was reviewed and tested by the author.
 
