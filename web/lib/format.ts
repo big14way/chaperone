@@ -10,6 +10,13 @@ export function fromUnits(units: bigint | string, decimals = USDC_DECIMALS): str
   return frac ? `${whole}.${frac}` : whole.toString();
 }
 
+/** fromUnits with thousands separators, for display only. */
+export function amount(units: bigint | string, decimals = USDC_DECIMALS): string {
+  const [w, f] = fromUnits(units, decimals).split(".");
+  const grouped = (w ?? "0").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return f ? `${grouped}.${f}` : grouped;
+}
+
 /** Whole/decimal string to base units; throws on anything that is not a non-negative decimal. */
 export function toUnits(amount: string, decimals = USDC_DECIMALS): bigint {
   const m = /^(\d+)(?:\.(\d+))?$/.exec(amount.trim());
