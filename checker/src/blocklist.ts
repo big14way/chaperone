@@ -26,6 +26,12 @@ export function fileBlocklist(path: string): Blocklist {
   };
 }
 
+/** In-memory list, e.g. the demo JSON bundled into a serverless function. */
+export function memoryBlocklist(entries: BlocklistEntry[], source = "memory"): Blocklist {
+  const byId = new Map(entries.map((e) => [e.account_id.toLowerCase(), e]));
+  return { source, async lookup(accountId) { return byId.get(accountId.toLowerCase()) ?? null; } };
+}
+
 /** Supabase (PostgREST) table `blocklist(account_id text primary key, reason text, evidence text, reported_at timestamptz)`. */
 export function supabaseBlocklist(url: string, anonKey: string, table = "blocklist"): Blocklist {
   return {
