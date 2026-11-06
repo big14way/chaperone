@@ -67,7 +67,7 @@ pnpm demo:dry
   ok   kill switch
 ```
 
-Run everything (contract build, 17 Rust tests including sandbox tests, typecheck, TypeScript tests):
+Run everything (contract build, 18 Rust tests including 14 sandbox tests, typecheck, 33 TypeScript tests, dashboard build):
 
 ```bash
 pnpm check
@@ -294,9 +294,9 @@ deployments/          deployed contract records
 
 ## Tracks
 
-- **security** (primary): an allow/warn/block risk service, a wallet wrapper that refuses on block and asks a human on warn, function-call key limits, and an on-chain attack log.
-- **agents**: the agent runtime and tools, and two agents (buyer, researcher) sharing one vault with separate caps. This is the policy layer a swarm-for-hire needs.
-- **defi**: a NEP-141 USDC treasury with programmable spend rules.
+- **security** (primary): an allow/warn/block risk service (hosted at getchaperone.vercel.app/api), a wallet wrapper that refuses on block and asks a human on warn, function-call key limits, a vault with no full-access key, TEE attestation of the agent's model, and an on-chain attack log.
+- **agents**: the agent runtime and tools, an MCP server so any agent can use a Chaperone wallet, and two agents (buyer, researcher) sharing one vault with separate caps. This is the policy layer a swarm-for-hire needs.
+- **defi**: a NEP-141 USDC treasury with programmable spend rules, and agent swaps through NEAR Intents (1Click) gated by the same caps, an asset allowlist, output-to-vault and a quote-loss check.
 - **business**: an accounts-payable agent that can pay vendors without being able to be talked into paying anyone else.
 
 ## Business model
@@ -313,7 +313,9 @@ None. This hackathon has no sponsor bounties and we did not apply to any. Everyt
 - **Contract-held funds + promises**: the vault calls `ft_transfer` on Circle USDC and rolls back the daily budget in a callback if the transfer fails.
 - **`env::ed25519_verify`** checks the checker's signed verdict on chain, with nonce and expiry stored in contract state.
 - **Block timestamps** drive the daily budget buckets and the timelock.
-- **NEAR AI Cloud** (optional) can serve as the agent's model through its OpenAI-compatible endpoint.
+- **NEAR AI Cloud TEE attestation**: with a NEAR AI model, the agent fetches the model's attestation report with a fresh nonce and refuses to act unless the Intel TDX quote binds that nonce and the model's signing address.
+- **No full-access key on the vault**: the deployer key was deleted; upgrades go through the owner-only `update_contract`.
+- **NEAR Intents**: agent swaps are quoted through the 1Click API under the vault's policy.
 
 ## Libraries and AI-generated code
 
