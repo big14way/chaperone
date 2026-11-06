@@ -128,6 +128,15 @@ Request 2 in the testnet log is an earlier 25 USDC attempt made while the vault 
 
 Without an LLM key the demos use a scripted agent that deliberately obeys the last payment instruction it reads, so the attack always fires. Set `NEAR_AI_API_KEY` (NEAR AI Cloud) or `ANTHROPIC_API_KEY` to use a real model. If the model resists the injection, the demo replays the call a fooled agent would make, so the vault's answer is always shown.
 
+## Owner dashboard
+
+```bash
+pnpm web            # http://localhost:3000, reads chaperone.testnet over public RPC, no keys needed
+pnpm demo:warn      # buyer asks for 10 USDC against a 6 USDC average: WARN, parked for the owner
+```
+
+The dashboard (`web/`, Next.js static export with NEAR Wallet Selector) shows the vault balance, requests waiting for the owner, the on-chain decision log, agents with their daily spend, and the policy. Connect the owner account (MyNearWallet or Intear Wallet) to approve or reject parked requests, edit the policy, revoke one agent, or hit the kill switch (`revoke_all`). Every owner method attaches 1 yoctoNEAR, which a function-call key cannot do, so each action is confirmed in the wallet. Point it at another vault with `NEXT_PUBLIC_VAULT_ID` (see `web/.env.example`).
+
 ## Key limits explained
 
 Each agent key is added by the vault to itself (`add_agent`) as a NEAR function-call access key. On testnet:
@@ -171,7 +180,8 @@ contracts/chaperone   vault contract (Rust) and near-workspaces tests (tests/vau
 contracts/mock-ft     NEP-141 token used by the sandbox
 checker/              risk checker: signals, scoring, signed verdicts, HTTP server
 agent/                agent runtime: read_page + chaperone_pay tools, LLM or scripted brain
-scripts/              demo:dry, demo:attack, demo:legit, testnet account/deploy/setup, log printer
+scripts/              demo:dry, demo:attack, demo:legit, demo:warn, testnet account/deploy/setup, log printer
+web/                  owner dashboard: approvals, decision log, agents, policy editor (Next.js)
 fixtures/             poisoned and clean vendor pages, demo blocklist
 deployments/          deployed contract records
 ```
@@ -193,7 +203,7 @@ deployments/          deployed contract records
 
 ## Libraries and AI-generated code
 
-Contract: `near-sdk`, `near-contract-standards`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`.
+Web: `next`, `react`, `tailwindcss`, `@near-wallet-selector/core`, `@near-wallet-selector/my-near-wallet`, `@near-wallet-selector/intear-wallet`. Contract: `near-sdk`, `near-contract-standards`; tests: `near-workspaces`, `near-sandbox`, `tokio`, `ed25519-dalek`. TypeScript: `near-api-js`, `near-sandbox`, `fastify`, `tweetnacl`, `bs58`, `ai`, `@ai-sdk/anthropic`, `@ai-sdk/openai-compatible`, `zod`, `tsx`, `typescript`, `vitest`. Build: `cargo-near`.
 
 Much of the code in this repository was written with AI coding assistants under the author's direction, and was reviewed and tested by the author.
 

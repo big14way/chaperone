@@ -14,7 +14,7 @@
     "test:contracts": "pnpm build:contracts && cargo test --workspace",
     "typecheck": "tsc -p tsconfig.json",
     "test:ts": "vitest run",
-    "check": "pnpm test:contracts && pnpm typecheck && pnpm test:ts",
+    "check": "pnpm test:contracts && pnpm typecheck && pnpm test:ts && pnpm build:web",
     "sandbox": "cargo run -q -p chaperone-sandbox",
     "checker": "tsx checker/src/server.ts",
     "demo:dry": "tsx scripts/demo-dry.ts",
@@ -24,7 +24,10 @@
     "setup:testnet": "tsx scripts/setup-testnet.ts",
     "log": "tsx scripts/print-log.ts",
     "keygen": "tsx scripts/keygen.ts",
-    "accounts:testnet": "tsx scripts/create-testnet-accounts.ts"
+    "accounts:testnet": "tsx scripts/create-testnet-accounts.ts",
+    "demo:warn": "tsx scripts/warn-demo.ts",
+    "web": "pnpm --filter @chaperone/web dev",
+    "build:web": "pnpm --filter @chaperone/web build"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

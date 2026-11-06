@@ -11,3 +11,4 @@ neardev/
 .near-credentials/
 .chaperone/
 *.tsbuildinfo
+out/
