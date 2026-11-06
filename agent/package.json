@@ -9,6 +9,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.97",
     "@ai-sdk/openai-compatible": "3.0.85",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "ai": "7.0.163",
     "bs58": "6.0.0",
     "near-api-js": "7.4.0",

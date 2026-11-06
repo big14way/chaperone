@@ -31,7 +31,8 @@
     "deploy:web": "bash scripts/deploy-web.sh",
     "upgrade:testnet": "tsx scripts/upgrade-testnet.ts",
     "lock:testnet": "tsx scripts/lock-testnet.ts",
-    "demo:swap": "tsx scripts/swap-demo.ts"
+    "demo:swap": "tsx scripts/swap-demo.ts",
+    "mcp": "tsx agent/src/mcp.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

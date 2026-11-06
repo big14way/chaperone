@@ -139,6 +139,30 @@ Request 2 in the testnet log is an earlier 25 USDC attempt made while the vault 
 
 Without an LLM key the demos use a scripted agent that deliberately obeys the last payment instruction it reads, so the attack always fires. Set `NEAR_AI_API_KEY` (NEAR AI Cloud) or `ANTHROPIC_API_KEY` to use a real model. If the model resists the injection, the demo replays the call a fooled agent would make, so the vault's answer is always shown.
 
+## Use it from any agent (MCP)
+
+`pnpm mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server, so any MCP-capable agent (Claude, Cursor, NEAR AI agents, your own) gets a Chaperone wallet whose only power is to ask. It needs the vault id and one agent's function-call key; nothing else.
+
+| Tool | What it does |
+|---|---|
+| `chaperone_budget` | What the agent may still spend today, its per-payment cap, approved recipients. Read-only. |
+| `chaperone_check` | Asks the hosted checker about a recipient: allow, warn or block, with reasons. No transaction. |
+| `chaperone_pay` | Pays through the vault, which pays, holds for the owner, or refuses and logs why. |
+
+```json
+{
+  "mcpServers": {
+    "chaperone": {
+      "command": "pnpm",
+      "args": ["-s", "--dir", "/path/to/chaperone", "mcp"],
+      "env": { "VAULT_ID": "chaperone.testnet", "AGENT_PRIVATE_KEY": "ed25519:<an agent key added with add_agent>" }
+    }
+  }
+}
+```
+
+The checker defaults to the hosted one at `https://getchaperone.vercel.app/api` (`GET /api/health`, `POST /api/verdict`); set `CHECKER_URL` to use your own (`pnpm checker`).
+
 ## Swaps through NEAR Intents (dry run)
 
 ```bash
@@ -230,7 +254,7 @@ Owner: `approve`, `reject`, `set_policy`, `set_checker`, `add_agent`, `revoke_ag
 
 Views: `get_info`, `get_policy`, `get_agent`, `get_agents`, `get_pending`, `get_log`, `get_first_seen`, `get_verdict_message`.
 
-Checker HTTP: `GET /health`, `POST /verdict`. Run standalone with `pnpm checker`.
+Checker HTTP: `GET /health`, `POST /verdict`. Hosted at `https://getchaperone.vercel.app/api` (same code, deployed by `pnpm deploy:web`); run your own with `pnpm checker`.
 
 ## Repository layout
 
