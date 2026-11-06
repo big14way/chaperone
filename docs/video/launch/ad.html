@@ -49,6 +49,8 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 </div>
 <script>
 const BAR = 3.0, BEAT = 0.75, DUR = 36;
+// End-card link: the deployed dashboard (set with ?link=... when rendering).
+const LINK = new URLSearchParams(location.search).get('link') || 'getchaperone.vercel.app';
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const prog = (t, a, b) => clamp((t - a) / (b - a));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -228,7 +230,7 @@ def(33, (el) => {
   logo.innerHTML = `<svg width="110" height="110" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#000"/><circle cx="16" cy="16" r="9" fill="none" stroke="#e4f222" stroke-width="2"/><circle cx="16" cy="16" r="3.2" fill="#e4f222"/></svg>`;
   const wm = at($('div', 'wordmark', el, 'chaperone'), 890, 238); wm.style.fontSize = '96px'; wm.style.lineHeight = '110px';
   const tag = line(el, 'Give agents money, not the keys.', { y: 430, size: 92, times: [0.3, 0.42, 0.54, 0.7, 0.82, 0.94], align: 'center', mk: [3, 4, 5] });
-  const b1 = at($('div', 'btn lime', el, 'github.com/big14way/chaperone'), 0, 640);
+  const b1 = at($('div', 'btn lime', el, LINK + ' ↗'), 0, 640);
   const b2 = at($('div', 'btn white', el, 'Built at NEAR Hackathon'), 0, 640);
   const foot = at($('div', 'eyebrow', el, '@NEARProtocol · #NEARHackathon'), 0, 820); foot.style.width = '1920px'; foot.style.textAlign = 'center';
   return (lt) => {

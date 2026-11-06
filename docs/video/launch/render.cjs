@@ -6,7 +6,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
   const b = await chromium.launch({ args: ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
   const p = await b.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   p.on("pageerror", (e) => console.log("pageerror:", e.message));
-  await p.goto("file://" + path.join(__dirname, "ad.html")); await p.evaluate(() => window.ready); await p.waitForTimeout(800);
+  await p.goto("file://" + path.join(__dirname, "ad.html") + (process.env.AD_LINK ? "?link=" + encodeURIComponent(process.env.AD_LINK) : "")); await p.evaluate(() => window.ready); await p.waitForTimeout(800);
   const out = path.join(__dirname, mode === "all" ? "frames" : "preview"); fs.mkdirSync(out, { recursive: true });
   const times = mode === "all" ? [...Array(1080).keys()].map((f) => f / 30)
     : (process.argv[3] ? process.argv[3].split(",").map(Number) : [2.6, 5.6, 8.6, 11.6, 14.6, 17.6, 20.4, 23.6, 26.6, 29.6, 32.6, 35.0]);

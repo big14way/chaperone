@@ -27,7 +27,8 @@
     "accounts:testnet": "tsx scripts/create-testnet-accounts.ts",
     "demo:warn": "tsx scripts/warn-demo.ts",
     "web": "pnpm --filter @chaperone/web dev",
-    "build:web": "pnpm --filter @chaperone/web build"
+    "build:web": "pnpm --filter @chaperone/web build",
+    "deploy:web": "bash scripts/deploy-web.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

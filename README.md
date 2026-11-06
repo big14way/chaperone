@@ -2,6 +2,8 @@
 
 **Give an AI agent money without giving it the keys.**
 
+**Live dashboard:** [getchaperone.vercel.app](https://getchaperone.vercel.app) (reads the `chaperone.testnet` vault; no wallet needed to audit it)
+
 Chaperone is a policy vault on NEAR for AI agents. The agent holds only a function-call key that can call one method, `request_spend`, on the vault. Every spend needs a signed counterparty risk verdict (allow / warn / block) and must pass owner-set caveats. Warn-band requests wait for the owner's approval.
 
 ## Problem
@@ -139,7 +141,10 @@ Without an LLM key the demos use a scripted agent that deliberately obeys the la
 
 ## Owner dashboard
 
+Live at [getchaperone.vercel.app](https://getchaperone.vercel.app). Run it locally or redeploy:
+
 ```bash
+pnpm deploy:web     # static export to Vercel (project getchaperone)
 pnpm web            # http://localhost:3000, reads chaperone.testnet over public RPC, no keys needed
 pnpm demo:warn      # buyer asks for 10 USDC against a 6 USDC average: WARN, parked for the owner
 ```
