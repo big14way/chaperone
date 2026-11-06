@@ -33,7 +33,7 @@ info("allowed assets: USDC, wNEAR · output must return to the vault · quote lo
 
 async function attempt(title: string, r: SwapRequest) {
   step(title);
-  info(`agent -> chaperone_swap(${fromUnits(r.amountUnits)} USDC -> ${r.toAsset.replace("nep141:", "")}, recipient=${r.recipient})`);
+  info(`agent -> chaperone_swap(${fromUnits(r.amountUnits)} USDC -> ${r.toAsset.replace("nep141:", "")}, recipient=${r.recipient === standIn ? "vault" : r.recipient})`);
   const pre = precheckSwap(p, r);
   if (pre.length) {
     info(red(bold(`BLOCK before any quote: ${pre.join(", ")}`)));
