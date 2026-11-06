@@ -30,7 +30,8 @@
     "build:web": "pnpm --filter @chaperone/web build",
     "deploy:web": "bash scripts/deploy-web.sh",
     "upgrade:testnet": "tsx scripts/upgrade-testnet.ts",
-    "lock:testnet": "tsx scripts/lock-testnet.ts"
+    "lock:testnet": "tsx scripts/lock-testnet.ts",
+    "demo:swap": "tsx scripts/swap-demo.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

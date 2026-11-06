@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkQuoteBinding } from "../src/attest.ts";
+import { judgeQuote, precheckSwap, type SwapPolicy } from "../src/swap.ts";
 import { fromUnits, toUnits } from "../src/near.ts";
 import { fill, htmlToText, readPage } from "../src/page.ts";
 import { findPaymentInstructions, naiveChoice } from "../src/scripted.ts";
@@ -68,5 +69,22 @@ describe("TEE attestation binding", () => {
   it("rejects a quote for another signer, and a non-TDX quote", () => {
     expect(checkQuoteBinding(quote("11".repeat(20) + "0".repeat(24) + nonce), addr, nonce).bound).toBe(false);
     expect(checkQuoteBinding(quote(good, 4, 0), addr, nonce).problems).toContain("not an Intel TDX quote");
+  });
+});
+
+describe("swap policy (NEAR Intents)", () => {
+  const USDC = "nep141:usdc", WNEAR = "nep141:wrap.near", MEME = "nep141:meme.near";
+  const p: SwapPolicy = { vault: "vault.near", perTxCapUnits: 50_000_000n, remainingTodayUnits: 100_000_000n, allowedAssets: [USDC, WNEAR], warnLossBps: 200, blockLossBps: 1000 };
+  it("allows an in-cap swap between allowed assets back to the vault", () => {
+    expect(precheckSwap(p, { fromAsset: USDC, toAsset: WNEAR, amountUnits: 5_000_000n, recipient: "vault.near" })).toEqual([]);
+  });
+  it("refuses an injected swap that sends the output elsewhere, into an unknown token, over the cap", () => {
+    expect(precheckSwap(p, { fromAsset: USDC, toAsset: MEME, amountUnits: 400_000_000n, recipient: "attacker.near" })).toEqual(
+      ["SWAP_OUTPUT_NOT_TO_VAULT", "TO_ASSET_NOT_ALLOWED", "PER_TX_CAP", "DAILY_CAP"]);
+  });
+  it("bands quote loss: allow under 2 %, warn from 2 %, block from 10 %", () => {
+    expect(judgeQuote(p, 5, 4.97).verdict).toBe("allow");
+    expect(judgeQuote(p, 5, 4.85).verdict).toBe("warn");
+    expect(judgeQuote(p, 5, 4.4).verdict).toBe("block");
   });
 });
