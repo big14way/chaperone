@@ -23,7 +23,8 @@
     "deploy:testnet": "bash scripts/deploy-testnet.sh",
     "setup:testnet": "tsx scripts/setup-testnet.ts",
     "log": "tsx scripts/print-log.ts",
-    "keygen": "tsx scripts/keygen.ts"
+    "keygen": "tsx scripts/keygen.ts",
+    "accounts:testnet": "tsx scripts/create-testnet-accounts.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
