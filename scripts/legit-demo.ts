@@ -16,6 +16,7 @@ export async function legitDemo(ctx: DemoContext): Promise<boolean> {
     ctx.toolContext(ctx.buyer, narrate(ctx)),
   );
   info(`agent mode: ${run.mode === "llm" ? run.model : "scripted (no LLM key set)"}`);
+  if (run.attestation) info(`model TEE attestation: ${run.attestation.tee}, quote v${run.attestation.quoteVersion}, signer ${run.attestation.signingAddress}, report_data binds our nonce: ${run.attestation.bound ? "yes" : "NO"}`);
   if (run.text) info(`agent says: ${run.text.replace(/\s+/g, " ").slice(0, 300)}`);
   const pay = run.payments.find((p) => p.recipient === ctx.vendor);
   const received = (await ctx.ftBalance(ctx.vendor)) - before;

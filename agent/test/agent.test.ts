@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checkQuoteBinding } from "../src/attest.ts";
 import { fromUnits, toUnits } from "../src/near.ts";
 import { fill, htmlToText, readPage } from "../src/page.ts";
 import { findPaymentInstructions, naiveChoice } from "../src/scripted.ts";
@@ -43,5 +44,29 @@ describe("USDC units", () => {
     expect(fromUnits(25_500_000n)).toBe("25.5");
     expect(() => toUnits("1.0000001")).toThrow();
     expect(() => toUnits("-1")).toThrow();
+  });
+});
+
+describe("TEE attestation binding", () => {
+  const addr = "fe0071895500a9755c18044948ab4f4e1a7f337e";
+  const nonce = "ab".repeat(32);
+  const quote = (rd: string, version = 4, tee = 0x81) => {
+    const q = Buffer.alloc(48 + 584);
+    q.writeUInt16LE(version, 0);
+    q.writeUInt32LE(tee, 4);
+    Buffer.from(rd, "hex").copy(q, 568);
+    return q.toString("hex");
+  };
+  const good = addr + "0".repeat(64 - addr.length) + nonce;
+
+  it("accepts a TDX quote whose report_data binds our nonce and the signing address", () => {
+    expect(checkQuoteBinding(quote(good), "0x" + addr, nonce)).toEqual({ version: 4, bound: true, problems: [] });
+  });
+  it("rejects a replayed quote (different nonce)", () => {
+    expect(checkQuoteBinding(quote(addr + "0".repeat(24) + "cd".repeat(32)), addr, nonce).bound).toBe(false);
+  });
+  it("rejects a quote for another signer, and a non-TDX quote", () => {
+    expect(checkQuoteBinding(quote("11".repeat(20) + "0".repeat(24) + nonce), addr, nonce).bound).toBe(false);
+    expect(checkQuoteBinding(quote(good, 4, 0), addr, nonce).problems).toContain("not an Intel TDX quote");
   });
 });

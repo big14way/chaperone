@@ -7,10 +7,13 @@ import type { LanguageModel } from "ai";
 export interface ModelChoice {
   model: LanguageModel;
   label: string;
+  /** Set for NEAR AI Cloud: the model id to attest before acting. */
+  nearAi?: { id: string; apiKey: string; baseUrl: string };
 }
 
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5";
-export const DEFAULT_NEAR_AI_MODEL = "anthropic/claude-sonnet-5-5";
+// A model NEAR AI Cloud serves inside a TEE with a verifiable attestation report (checked in attest.ts).
+export const DEFAULT_NEAR_AI_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
 export const NEAR_AI_BASE_URL = "https://cloud-api.near.ai/v1";
 
 export function pickModel(env: NodeJS.ProcessEnv = process.env): ModelChoice | null {
@@ -22,7 +25,7 @@ export function pickModel(env: NodeJS.ProcessEnv = process.env): ModelChoice | n
       baseURL: env.NEAR_AI_BASE_URL || NEAR_AI_BASE_URL,
       apiKey: env.NEAR_AI_API_KEY,
     });
-    return { model: nearai.chatModel(id), label: `NEAR AI Cloud ${id}` };
+    return { model: nearai.chatModel(id), label: `NEAR AI Cloud ${id}`, nearAi: { id, apiKey: env.NEAR_AI_API_KEY, baseUrl: env.NEAR_AI_BASE_URL || NEAR_AI_BASE_URL } };
   }
   if (env.ANTHROPIC_API_KEY) {
     const id = env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
