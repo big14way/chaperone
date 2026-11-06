@@ -37,7 +37,8 @@ export async function getVerdict(
   checkerUrl: string,
   body: { agent: string; token: string; amount: string; recipient: string },
 ): Promise<VerdictResponse> {
-  const res = await fetch(new URL("/verdict", checkerUrl), {
+  // Relative join keeps a path prefix such as https://getchaperone.vercel.app/api.
+  const res = await fetch(new URL("verdict", checkerUrl.endsWith("/") ? checkerUrl : checkerUrl + "/"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
