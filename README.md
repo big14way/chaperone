@@ -85,7 +85,7 @@ pnpm keygen >> .env          # checker signing key
 pnpm deploy:testnet          # cargo near deploy + init
 pnpm setup:testnet           # storage_deposit, add agents, write deployments/testnet.json
 NEAR_NETWORK=testnet pnpm demo:attack
-NEAR_NETWORK=testnet pnpm demo:legit   # needs USDC in the vault: faucet.circle.com, then FUND_USDC=... pnpm setup:testnet
+NEAR_NETWORK=testnet pnpm demo:legit   # needs at least 6 USDC in the vault: send it from faucet.circle.com straight to the vault account
 ```
 
 ## The attack demo
@@ -110,6 +110,21 @@ NEAR_NETWORK=testnet pnpm demo:legit   # needs USDC in the vault: faucet.circle.
 ```
 
 The second attempt shows that the checker is not the only defence. Even with a forged verdict, the contract's own caveats refuse the payment.
+
+The same agent then pays a clean invoice from the allowlisted vendor (`pnpm demo:legit`, real testnet run):
+
+```
+> The buyer agent settles a clean invoice: 6 USDC to chaperone-vendor.testnet (on the owner's allowlist).
+  agent -> read_page(fixture:vendor-invoice) returned 287 chars
+  agent -> chaperone_pay(recipient=chaperone-vendor.testnet, amount=6 USDC, memo=LDL-1042)
+  checker verdict: ALLOW score=0 reasons=[ALLOWLISTED, NO_SPEND_HISTORY]
+  vault decision: ALLOW transfer=settled request=3 agent=buyer 6 USDC -> chaperone-vendor.testnet
+  tx: https://testnet.nearblocks.io/txns/BMk8AmuNbgPteTm4AqS55nixQXsEcCkovjx1Xh5eYPDc
+
+> Result: vendor received 6 USDC from the vault.
+```
+
+Request 2 in the testnet log is an earlier 25 USDC attempt made while the vault held only 20 USDC. The policy allowed it, `ft_transfer` failed, and the vault logged `TRANSFER_FAILED` and refunded the agent's daily budget. Read the full log with `NEAR_NETWORK=testnet pnpm log`.
 
 Without an LLM key the demos use a scripted agent that deliberately obeys the last payment instruction it reads, so the attack always fires. Set `NEAR_AI_API_KEY` (NEAR AI Cloud) or `ANTHROPIC_API_KEY` to use a real model. If the model resists the injection, the demo replays the call a fooled agent would make, so the vault's answer is always shown.
 

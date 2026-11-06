@@ -37,10 +37,10 @@ export async function warnDemo(ctx: DemoContext): Promise<boolean> {
   if (!ctx.owner) return true;
   banner("WARN: an unusual amount waits for the owner");
   const before = await ctx.ftBalance(ctx.vendor);
-  step("buyer pays the vendor 45 USDC, well above its 7-day average");
+  step("buyer pays the vendor 10 USDC, well above its 7-day average");
   const r = await chaperonePay(ctx.toolContext(ctx.buyer, narrate(ctx)), {
     recipient: ctx.vendor,
-    amount_usdc: "45",
+    amount_usdc: "10",
     memo: "LDL-1043",
   });
   const pending = await ctx.vault.pending();
@@ -50,7 +50,7 @@ export async function warnDemo(ctx: DemoContext): Promise<boolean> {
   printDecision(entry, ctx.explorer(txHash));
   const received = (await ctx.ftBalance(ctx.vendor)) - before;
   return result(
-    r.decision === "warn" && entry.outcome === "approved" && entry.transfer === "settled" && received === toUnits("45"),
+    r.decision === "warn" && entry.outcome === "approved" && entry.transfer === "settled" && received === toUnits("10"),
     "nothing moved until the owner said yes; then the vault paid.",
     `request=${r.decision} approval=${entry.outcome}/${entry.transfer}`,
   );
