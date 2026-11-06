@@ -1,0 +1,88 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> pnpm demo:dry   # local sandbox, no keys",
+  "type": true,
+  "cps": 45
+ },
+ {
+  "t": 2.2888888888888888,
+  "html": "SWARM: two agents share one vault, each with its own caps"
+ },
+ {
+  "t": 3.0388888888888888,
+  "html": "<span class=\"kw\">&gt; researcher (max 2 USDC per payment, 5 per day) buys a 2 USDC data sample</span>"
+ },
+ {
+  "t": 4.038888888888889,
+  "html": "  agent -&gt; chaperone_pay(recipient=vendor.sandbox, amount=2 USDC, memo=sample)"
+ },
+ {
+  "t": 4.788888888888889,
+  "html": "<span class=\"ok\">  checker verdict: ALLOW score=0 reasons=[ALLOWLISTED, KNOWN_COUNTERPARTY, NO_SPEND_HISTORY]</span>"
+ },
+ {
+  "t": 5.688888888888889,
+  "html": "<span class=\"ok\">  vault decision: ALLOW transfer=settled request=3 agent=researcher 2 USDC -&gt; vendor.sandbox</span>"
+ },
+ {
+  "t": 6.5888888888888895,
+  "html": "<span class=\"ok\">  reason codes: ALLOWLISTED, KNOWN_COUNTERPARTY, NO_SPEND_HISTORY</span>"
+ },
+ {
+  "t": 7.48888888888889,
+  "html": "<span class=\"kw\">&gt; researcher tries 3 USDC: above its own per-payment cap, though the buyer's cap would allow it</span>"
+ },
+ {
+  "t": 8.48888888888889,
+  "html": "  agent -&gt; chaperone_pay(recipient=vendor.sandbox, amount=3 USDC, memo=sample-2)"
+ },
+ {
+  "t": 9.23888888888889,
+  "html": "<span class=\"ok\">  checker verdict: WARN score=30 reasons=[ALLOWLISTED, KNOWN_COUNTERPARTY, AMOUNT_SPIKE]</span>"
+ },
+ {
+  "t": 10.138888888888891,
+  "html": "<span class=\"bad\">  vault decision: BLOCK request=4 agent=researcher 3 USDC -&gt; vendor.sandbox</span>"
+ },
+ {
+  "t": 11.038888888888891,
+  "html": "<span class=\"ok\">  reason codes: RISK_WARN, ALLOWLISTED, KNOWN_COUNTERPARTY, AMOUNT_SPIKE, PER_TX_CAP</span>"
+ },
+ {
+  "t": 11.938888888888892,
+  "html": "<span class=\"kw\">&gt; Result: the researcher is held to its own limits.</span>"
+ },
+ {
+  "t": 12.938888888888892,
+  "html": "KILL SWITCH: revoke_all"
+ },
+ {
+  "t": 13.688888888888892,
+  "html": "<span class=\"kw\">&gt; owner calls revoke_all: policy version bumps, parked requests are cancelled, agent keys are deleted</span>"
+ },
+ {
+  "t": 14.688888888888892,
+  "html": "  agents revoked: 2"
+ },
+ {
+  "t": 15.438888888888892,
+  "html": "<span class=\"kw\">&gt; buyer tries to pay 1 USDC with its old key</span>"
+ },
+ {
+  "t": 16.43888888888889,
+  "html": "  agent -&gt; chaperone_pay(recipient=vendor.sandbox, amount=1 USDC)"
+ },
+ {
+  "t": 17.18888888888889,
+  "html": "<span class=\"ok\">  checker verdict: ALLOW score=0 reasons=[ALLOWLISTED, KNOWN_COUNTERPARTY]</span>"
+ },
+ {
+  "t": 18.08888888888889,
+  "html": "<span class=\"bad\">  network refused the transaction: Access key ed25519:Ee6HGEkdjtVFjTzv35VReNG1h63GuZRWGpyZxMUx4ezu does not exist on account vault.sandbox</span>"
+ },
+ {
+  "t": 18.988888888888887,
+  "html": "<span class=\"kw\">&gt; Result: the agent's key no longer exists; it cannot even sign.</span>"
+ }
+]

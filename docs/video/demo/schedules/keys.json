@@ -1,0 +1,44 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> curl -s https://test.rpc.fastnear.com -d '{\"method\":\"query\",\"params\":{\"request_type\":\"view_access_key_list\",\"account_id\":\"chaperone.testnet\"}}'",
+  "type": true,
+  "cps": 45
+ },
+ {
+  "t": 4.5777777777777775,
+  "html": "<span class=\"ok\">ed25519:DonRRpPkyGzaHh…  FunctionCall</span>"
+ },
+ {
+  "t": 5.277777777777778,
+  "html": "    receiver_id:  chaperone.testnet"
+ },
+ {
+  "t": 5.8277777777777775,
+  "html": "    method_names: [\"request_spend\"]"
+ },
+ {
+  "t": 6.377777777777777,
+  "html": "    allowance:    0.50 NEAR of gas, no deposits"
+ },
+ {
+  "t": 6.927777777777777,
+  "html": "<span class=\"ok\">ed25519:FSefcenrVsb5mu…  FunctionCall</span>"
+ },
+ {
+  "t": 7.627777777777777,
+  "html": "    receiver_id:  chaperone.testnet"
+ },
+ {
+  "t": 8.177777777777777,
+  "html": "    method_names: [\"request_spend\"]"
+ },
+ {
+  "t": 8.727777777777778,
+  "html": "    allowance:    0.50 NEAR of gas, no deposits"
+ },
+ {
+  "t": 9.277777777777779,
+  "html": "<span class=\"ok\"># 2 keys. No full-access key: nobody can sign for the vault outside its rules.</span>"
+ }
+]

@@ -1,0 +1,36 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> NEAR_NETWORK=testnet pnpm demo:legit",
+  "type": true,
+  "cps": 45
+ },
+ {
+  "t": 2.2,
+  "html": "<span class=\"kw\">&gt; The buyer agent settles a clean invoice: 6 USDC to chaperone-vendor.testnet (on the owner's allowlist).</span>"
+ },
+ {
+  "t": 3.2,
+  "html": "  agent -&gt; read_page(fixture:vendor-invoice) returned 287 chars"
+ },
+ {
+  "t": 3.95,
+  "html": "  agent -&gt; chaperone_pay(recipient=chaperone-vendor.testnet, amount=6 USDC, memo=LDL-1042)"
+ },
+ {
+  "t": 4.7,
+  "html": "<span class=\"ok\">  checker verdict: ALLOW score=0 reasons=[ALLOWLISTED, NO_SPEND_HISTORY]</span>"
+ },
+ {
+  "t": 5.6000000000000005,
+  "html": "<span class=\"ok\">  vault decision: ALLOW transfer=settled request=3 agent=buyer 6 USDC -&gt; chaperone-vendor.testnet</span>"
+ },
+ {
+  "t": 6.500000000000001,
+  "html": "<span class=\"link\">  tx: https://testnet.nearblocks.io/txns/BMk8AmuNbgPteTm4AqS55nixQXsEcCkovjx1Xh5eYPDc</span>"
+ },
+ {
+  "t": 7.200000000000001,
+  "html": "<span class=\"kw\">&gt; Result: vendor received 6 USDC from the vault.</span>"
+ }
+]

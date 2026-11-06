@@ -1,0 +1,44 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> pnpm mcp   # Chaperone as an MCP server for any agent",
+  "type": true,
+  "cps": 45
+ },
+ {
+  "t": 2.577777777777778,
+  "html": "<span class=\"dim\"># an MCP client connects to `pnpm mcp` (stdio) with one agent function-call key</span>"
+ },
+ {
+  "t": 3.177777777777778,
+  "html": "tools: chaperone_budget, chaperone_check, chaperone_pay"
+ },
+ {
+  "t": 3.727777777777778,
+  "html": "<span class=\"kw\">&gt; chaperone_budget()</span>"
+ },
+ {
+  "t": 4.627777777777778,
+  "html": "  Remaining today: 84 USDC of 100. Max per payment: 50 USDC."
+ },
+ {
+  "t": 5.177777777777778,
+  "html": "  approved_recipients: [\"chaperone-vendor.testnet\"]  new_recipient_wait_hours: 24"
+ },
+ {
+  "t": 5.727777777777778,
+  "html": "<span class=\"kw\">&gt; chaperone_check(recipient=\"chaperone-attacker.testnet\", amount_usdc=\"500\")</span>"
+ },
+ {
+  "t": 6.627777777777778,
+  "html": "<span class=\"bad\">  Checker says BLOCK (risk 100/100): BLOCKLISTED, NEW_ACCOUNT_LARGE_AMOUNT, NOT_ALLOWLISTED, NEW_ACCOUNT, LOW_ACTIVITY, FIRST_INTERACTION</span>"
+ },
+ {
+  "t": 7.427777777777778,
+  "html": "<span class=\"kw\">&gt; chaperone_check(recipient=\"chaperone-vendor.testnet\", amount_usdc=\"6\")</span>"
+ },
+ {
+  "t": 8.327777777777778,
+  "html": "<span class=\"ok\">  Checker says ALLOW (risk 0/100): ALLOWLISTED, KNOWN_COUNTERPARTY</span>"
+ }
+]
