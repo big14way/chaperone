@@ -1,7 +1,7 @@
 // Counterparty checker service: POST /verdict -> signals -> score -> ed25519-signed verdict.
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance } from "fastify";
-import { combineBlocklists, fileBlocklist, supabaseBlocklist, type Blocklist } from "./blocklist.ts";
+import { combineBlocklists, fileBlocklist, registryBlocklist, supabaseBlocklist, type Blocklist } from "./blocklist.ts";
 import { CodeCache } from "./codecache.ts";
 import { type CheckerConfig } from "./config.ts";
 import { NearBlocks, defaultNearBlocksUrl } from "./nearblocks.ts";
@@ -36,16 +36,21 @@ export interface Checker {
   check(req: VerdictRequest): Promise<VerdictResponse>;
 }
 
+/** The local list (file or bundled), then the shared on-chain registry, then Supabase when configured. */
+export function blocklistFor(config: CheckerConfig, local: Blocklist, rpc = new Rpc(config.rpcUrl)): Blocklist {
+  const lists: Blocklist[] = [local];
+  if (config.blocklistRegistry) lists.push(registryBlocklist((c, m, a) => rpc.view(c, m, a), config.blocklistRegistry));
+  if (config.supabaseUrl && config.supabaseAnonKey) lists.push(supabaseBlocklist(config.supabaseUrl, config.supabaseAnonKey));
+  return combineBlocklists(lists);
+}
+
 export function createChecker(config: CheckerConfig, overrides: Partial<SignalDeps> = {}): Checker {
   const key = checkerKeyFromSecret(config.checkerSecretKey);
-  const lists: Blocklist[] = [fileBlocklist(config.blocklistPath)];
-  if (config.supabaseUrl && config.supabaseAnonKey) {
-    lists.push(supabaseBlocklist(config.supabaseUrl, config.supabaseAnonKey));
-  }
+  const rpc = overrides.rpc ?? new Rpc(config.rpcUrl);
   const deps: SignalDeps = {
-    rpc: new Rpc(config.rpcUrl),
+    rpc,
     vault: config.vault,
-    blocklist: combineBlocklists(lists),
+    blocklist: blocklistFor(config, fileBlocklist(config.blocklistPath), rpc),
     codeCache: new CodeCache(config.codeCachePath),
     nearblocks:
       config.nearblocksApiKey && config.network !== "sandbox"

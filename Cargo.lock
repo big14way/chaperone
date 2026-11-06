@@ -372,6 +372,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "chaperone-registry"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "near-sandbox",
+ "near-sdk",
+ "near-workspaces",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "chaperone-tee"
 version = "0.1.0"
 dependencies = [

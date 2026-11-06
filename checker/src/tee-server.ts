@@ -7,14 +7,16 @@
 // key; anyone can pass them to the vault's register_checker, which verifies them on chain.
 // A restart creates a new key, which must be registered again.
 //
-// Env: VAULT_ID, NEAR_NETWORK (testnet), optional NEAR_RPC_URL, PORT (8787).
+// Env: VAULT_ID, NEAR_NETWORK (testnet), optional NEAR_RPC_URL, BLOCKLIST_REGISTRY, PORT (8787).
+// The blocklist is the bundled list plus the shared on-chain registry: its data is public and the
+// code that reads it is pinned by the attestation.
 import { DstackClient } from "@phala/dstack-sdk";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import blocklist from "../../fixtures/blocklist.json" with { type: "json" };
 import { memoryBlocklist, type BlocklistEntry } from "./blocklist.ts";
 import { configFromEnv } from "./config.ts";
-import { buildServer, createChecker } from "./server.ts";
+import { blocklistFor, buildServer, createChecker } from "./server.ts";
 import { reportDataFor } from "./tee-report-data.ts";
 
 
@@ -27,7 +29,7 @@ async function main() {
     codeCachePath: "/tmp/chaperone-code-hashes.json",
   };
   const checker = createChecker(config, {
-    blocklist: memoryBlocklist((blocklist as { entries: BlocklistEntry[] }).entries, "bundled:fixtures/blocklist.json"),
+    blocklist: blocklistFor(config, memoryBlocklist((blocklist as { entries: BlocklistEntry[] }).entries, "bundled:fixtures/blocklist.json")),
   });
 
   const dstack = new DstackClient();

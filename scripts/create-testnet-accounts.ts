@@ -1,4 +1,4 @@
-// pnpm accounts:testnet  -  create the demo accounts on NEAR testnet through the public faucet helper
+// pnpm accounts:testnet  -  create the demo accounts (and the shared blocklist registry) on NEAR testnet through the public faucet helper
 // (free, no wallet needed). Keys go to the legacy NEAR CLI keychain, ~/.near-credentials/testnet/,
 // which deploy-testnet.sh and setup-testnet.ts read. Existing accounts are left alone.
 //
@@ -19,6 +19,7 @@ const roles: Array<[string, string]> = [
   ["OWNER_ID", `${prefix}-owner.testnet`],
   ["VENDOR_ID", `${prefix}-vendor.testnet`],
   ["ATTACKER_ID", `${prefix}-attacker.testnet`],
+  ["REGISTRY_ID", `${prefix}-registry.testnet`],
 ];
 const keyDir = join(homedir(), ".near-credentials", "testnet");
 

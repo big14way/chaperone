@@ -12,6 +12,8 @@ export interface CheckerConfig {
   vault: string;
   checkerSecretKey: string;
   blocklistPath: string;
+  /** Shared blocklist registry contract; "" turns it off. */
+  blocklistRegistry?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   nearblocksApiKey?: string;
@@ -28,6 +30,9 @@ export const DEFAULT_RPC: Record<Network, string> = {
   mainnet: "https://free.rpc.fastnear.com",
 };
 
+/** The shared blocklist registry deployed per network (contracts/registry). */
+export const DEFAULT_REGISTRY: Partial<Record<Network, string>> = { testnet: "chaperone-registry.testnet" };
+
 function need(name: string, env: NodeJS.ProcessEnv): string {
   const v = env[name];
   if (!v) throw new Error(`missing env ${name} (see .env.example)`);
@@ -42,6 +47,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): CheckerConf
     vault: need("VAULT_ID", env),
     checkerSecretKey: need("CHECKER_SECRET_KEY", env),
     blocklistPath: resolve(REPO_ROOT, env.BLOCKLIST_PATH || "fixtures/blocklist.json"),
+    blocklistRegistry: (env.BLOCKLIST_REGISTRY ?? DEFAULT_REGISTRY[network]) || undefined,
     supabaseUrl: env.SUPABASE_URL || undefined,
     supabaseAnonKey: env.SUPABASE_ANON_KEY || undefined,
     nearblocksApiKey: env.NEARBLOCKS_API_KEY || undefined,

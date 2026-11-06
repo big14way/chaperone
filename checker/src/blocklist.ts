@@ -1,4 +1,5 @@
-// Shared blocklist of known-bad recipients: a JSON file, or a Supabase table when configured.
+// Blocklist of known-bad recipients: the shared on-chain registry (contracts/registry), a JSON file,
+// or a Supabase table when configured.
 import { readFileSync, existsSync } from "node:fs";
 
 export interface BlocklistEntry {
@@ -6,6 +7,7 @@ export interface BlocklistEntry {
   reason: string;
   evidence?: string;
   reported_at?: string;
+  reporter?: string;
 }
 
 export interface Blocklist {
@@ -30,6 +32,28 @@ export function fileBlocklist(path: string): Blocklist {
 export function memoryBlocklist(entries: BlocklistEntry[], source = "memory"): Blocklist {
   const byId = new Map(entries.map((e) => [e.account_id.toLowerCase(), e]));
   return { source, async lookup(accountId) { return byId.get(accountId.toLowerCase()) ?? null; } };
+}
+
+const ACCOUNT_ID = /^(?=.{2,64}$)(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
+
+type ViewFn = (contractId: string, method: string, args: Record<string, unknown>) => Promise<unknown>;
+
+/**
+ * The shared registry contract (`get_flag`). One flag there blocks the account for every vault
+ * whose checker reads it. A failed read throws, so the checker fails closed.
+ */
+export function registryBlocklist(view: ViewFn, registryId: string): Blocklist {
+  return {
+    source: `near:${registryId}`,
+    async lookup(accountId) {
+      // Not a valid NEAR account id: the vault rejects the spend anyway, and the view would panic.
+      if (!ACCOUNT_ID.test(accountId)) return null;
+      const f = (await view(registryId, "get_flag", { account_id: accountId })) as
+        | { account_id: string; reason: string; evidence: string; reporter: string; reported_ms: number }
+        | null;
+      return f ? { account_id: f.account_id, reason: f.reason, evidence: f.evidence, reporter: f.reporter, reported_at: new Date(f.reported_ms).toISOString() } : null;
+    },
+  };
 }
 
 /** Supabase (PostgREST) table `blocklist(account_id text primary key, reason text, evidence text, reported_at timestamptz)`. */
