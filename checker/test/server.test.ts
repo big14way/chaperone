@@ -80,5 +80,6 @@ describe("POST /verdict", () => {
     const { app, key } = setup();
     const res = await app.inject({ method: "GET", url: "/health" });
     expect(res.json()).toMatchObject({ ok: true, vault: "vault.sandbox", checker_pk: key.publicKey });
+    expect(typeof res.json().blocklist).toBe("string");
   });
 });

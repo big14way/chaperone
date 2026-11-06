@@ -108,6 +108,7 @@ export function buildServer(checker: Checker): FastifyInstance {
     network: checker.config.network,
     vault: checker.config.vault,
     checker_pk: checker.key.publicKey,
+    blocklist: checker.deps.blocklist.source,
   }));
 
   app.post<{ Body: VerdictRequest }>(
