@@ -1,0 +1,223 @@
+{
+ "mrtd": "df4d77c857de652bd0fafa343a2026b51071ee03773d076d283abf1a7d36ff91ffa279ee4a617ac664f7e2a2c8d5891b",
+ "rtmr0": "bc122d143ab768565ba5c3774ff5f03a63c89a4df7c1f5ea38d3bd173409d14f8cbdcc36d40e703cccb996a9d9687590",
+ "rtmr1": "4ae609807c765916a31d724786ed74bcb97e168a9d937b04936aeef2015c907eba5ac352c6bcd749c246fd62ffb659ec",
+ "rtmr2": "bd67ab7554dc27ab03a077bc1447a1a67d0624ff547c4c809a8626f12d6a89712f8ec60e781e99b98208574065d21a71",
+ "rtmr3": "b82e033606007266ad7f92273645be6c06ef5712dc5c110ec1e306d79afd14e1a9e41e092353383cbc189d57768f5b8d",
+ "os_image_hash": "91fd5d69ccee3e5ea4f2aeb8c9b632c4358c4ecfc29ba1aa6fb1e402af209829",
+ "compose_hash": "ae66f844658a7aee331dcb9fb59bd40323d71d192d37719e022cc4af8389265b",
+ "device_id": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "app_compose": "{\n    \"manifest_version\": 2,\n    \"name\": \"dstack-nvidia-0.5.11\",\n    \"runner\": \"docker-compose\",\n    \"docker_compose_file\": \"services:\\n  \\n  # OpenTelemetry collector sidecar for stable management visibility only.\\n  otelcol-management:\\n    image: otel/opentelemetry-collector-contrib@sha256:85ac41c2db88d0df9bd6145e608a3cb023f5d8443868adbfbbf66efb51087917\\n    container_name: otelcol-management\\n    command: [\\\"--config=/etc/otelcol-management/config.yaml\\\"]\\n    user: \\\"0:0\\\"\\n    mem_limit: \\\"768m\\\"\\n    environment:\\n      - MONITORING_INGEST_TOKEN=${MONITORING_INGEST_TOKEN}\\n      - CVM_NAME=${CVM_NAME}\\n      - CVM_HOST=${CVM_HOST}\\n      - DD_HOSTNAME=${DD_HOSTNAME}\\n      - ENV=${ENV}\\n      - CVM_HOSTMETRICS_ROOT_PATH=/hostfs\\n    volumes:\\n      - /var/run/docker.sock:/var/run/docker.sock:ro\\n      # Required for CVM guest hostmetrics parity. OTel prefixes host mount\\n      # points with root_path=/hostfs so the collector reports the guest host,\\n      # not the collector container filesystem.\\n      - /:/hostfs:ro\\n      - /var/lib/docker/containers:/var/lib/docker/containers:ro\\n      - otelcol-management-storage:/var/lib/otelcol-management\\n    configs:\\n      - source: otelcol_management_config\\n        target: /etc/otelcol-management/config.yaml\\n        mode: 0444\\n    restart: unless-stopped\\n    # Avoid the collector tailing its own Docker JSON log and creating a\\n    # feedback loop. The host-side Phase 1 collector still captures VM\\n    # serial/stderr if this sidecar itself needs debugging.\\n    logging:\\n      driver: \\\"local\\\"\\n      options:\\n        max-size: \\\"20m\\\"\\n        max-file: \\\"3\\\"\\n\\n\\n  certbot:\\n    image: certbot/dns-cloudflare@sha256:742dbd2e61c8709b930712c38958386c3cb3928e09eeb1f1e490600c127e2edb\\n    restart: unless-stopped\\n    entrypoint: \\\"/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'\\\"\\n    volumes:\\n      - certs:/etc/letsencrypt\\n    configs:\\n      - source: cloudflare_credentials\\n        target: /etc/cloudflare/credentials.ini\\n        mode: 0600\\n    depends_on:\\n      certbot-init:\\n        condition: service_completed_successfully\\n    labels:\\n      com.datadoghq.ad.logs: '[{\\\"source\\\": \\\"dns-cloudflare\\\", \\\"service\\\": \\\"dns-cloudflare\\\"}]'\\n    logging:\\n      driver: \\\"json-file\\\"\\n      options:\\n        max-size: \\\"100m\\\"\\n        max-file: \\\"10\\\"\\n        labels: \\\"com.datadoghq.ad.logs,com.docker.compose.service\\\"\\n\\n\\n  certbot-init:\\n    image: certbot/dns-cloudflare@sha256:742dbd2e61c8709b930712c38958386c3cb3928e09eeb1f1e490600c127e2edb\\n    volumes:\\n      - certs:/etc/letsencrypt\\n    restart: on-failure\\n    configs:\\n      - source: cloudflare_credentials\\n        target: /etc/cloudflare/credentials.ini\\n        mode: 0600\\n    command: >\\n      certonly\\n      --dns-cloudflare\\n      --dns-cloudflare-credentials /etc/cloudflare/credentials.ini\\n      --dns-cloudflare-propagation-seconds 30\\n      --email ${CERTBOT_EMAIL}\\n      --agree-tos --no-eff-email --non-interactive\\n      --key-type ecdsa --elliptic-curve secp256r1\\n      --cert-name completions.near.ai\\n      -d \\\"*.completions.near.ai\\\"\\n      -d \\\"completions.near.ai\\\"\\n      -d \\\"$HOSTNAME.hosts.near.ai\\\"\\n    labels:\\n      com.datadoghq.ad.logs: '[{\\\"source\\\": \\\"dns-cloudflare\\\", \\\"service\\\": \\\"dns-cloudflare\\\"}]'\\n    logging:\\n      driver: \\\"json-file\\\"\\n      options:\\n        max-size: \\\"100m\\\"\\n        max-file: \\\"10\\\"\\n        labels: \\\"com.datadoghq.ad.logs,com.docker.compose.service\\\"\\n\\n\\n  compose-manager:\\n    image: ${COMPOSE_MANAGER_IMAGE:-nearaidev/compose-manager@sha256:6e035c8fb99c1d31f41760d25af178683a658cca4afd73cd0d366fbb5bf884be}\\n    container_name: compose-manager\\n    restart: unless-stopped\\n    ports:\\n      - \\\"8080:8080\\\"\\n    # pid:host + CAP_SYS_ADMIN + CAP_SYS_PTRACE let compose-manager run\\n    # `nsenter -t 1 -m -u -i -n -p -- ...` into PID 1's namespaces.\\n    #   - SYS_PTRACE: needed to open /proc/1/ns/* (ptrace_may_access gates\\n    #     this — PID 1 has `dumpable=0` because it was launched with a full\\n    #     cap set, so even root in the same user-ns needs SYS_PTRACE).\\n    #   - SYS_ADMIN: needed for the setns() that follows the open.\\n    # Without BOTH, every nsenter call fails with \\\"cannot open /proc/1/ns/*:\\n    # Permission denied\\\" — affecting `/dstack-agent/:action` (pre-existing)\\n    # and `/admin/kernel/algif-blacklist` (PR #14 / CVE-2026-31431).\\n    #\\n    # NOTE on AppArmor: on a host with AppArmor enabled, docker-default also\\n    # blocks this regardless of caps; the workable combo there is\\n    # `cap_add: [SYS_ADMIN, SYS_PTRACE]` PLUS `security_opt:\\n    # apparmor=unconfined`. dstack-OS does NOT ship AppArmor (verified\\n    # 2026-05-19 — no apparmor binaries/profiles in the rootfs, no AppArmor\\n    # strings in bzImage), so we omit the `security_opt` line. If a future\\n    # dstack-OS image enables AppArmor, this template must add it.\\n    pid: host\\n    cap_add:\\n      - SYS_ADMIN\\n      - SYS_PTRACE\\n    volumes:\\n      - /var/run/docker.sock:/var/run/docker.sock\\n      - /var/run/dstack.sock:/var/run/dstack.sock\\n      - /dstack/.host-shared/.decrypted-env:/app/.env:ro\\n      - work:/app/work\\n    environment:\\n      - GITHUB_REPO=https://github.com/nearai/cvm-compose-files\\n      - BEARER_TOKEN=${BEARER_TOKEN}\\n      - WORK_DIR=/app/work\\n      - MIN_TAG_AGE_HOURS=${CM_MIN_TAG_AGE_HOURS:-0}\\n      - ENV_FILES=/app/.env\\n      # Slack ops notifications (nearai/infra#141). INSTANCE_LABEL identifies\\n      # this host in the message (\\\"Deployed on gpuXX\\\"); SLACK_WEBHOOK_URL is a\\n      # secret sourced from the CVM decrypted env (empty = notifications off).\\n      - INSTANCE_LABEL=gpu02\\n      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}\\n    labels:\\n      com.datadoghq.ad.logs: '[{\\\"source\\\": \\\"compose-manager\\\", \\\"service\\\": \\\"compose-manager\\\"}]'\\n    logging:\\n      driver: \\\"json-file\\\"\\n      options:\\n        max-size: \\\"100m\\\"\\n        max-file: \\\"10\\\"\\n        labels: \\\"com.datadoghq.ad.logs,com.docker.compose.service\\\"\\n\\n\\n  compose-manager-launcher:\\n    image: nearaidev/compose-manager-launcher@sha256:079a14b41deb11e0e27f9b69648e8b3d89bd6fb9ccf6071643b8f447fa415085\\n    container_name: compose-manager-launcher\\n    restart: unless-stopped\\n    # Host network so the launcher's health check (LAUNCHER_HEALTH_URL below,\\n    # http://127.0.0.1:8080/version) can reach compose-manager, which publishes\\n    # 8080 on the guest host via `ports: 8080:8080`. On the default bridge,\\n    # 127.0.0.1 is the launcher's own loopback and the check can never pass —\\n    # every swap/rollback would be wrongly declared failed.\\n    network_mode: host\\n    volumes:\\n      - /var/run/docker.sock:/var/run/docker.sock\\n      # Mounted read-only so the launcher can pass it as --env-file to docker compose,\\n      # allowing BEARER_TOKEN and other secrets to be substituted in the bundled\\n      # compose file without the launcher holding them in its own environment.\\n      - /dstack/.host-shared/.decrypted-env:/dstack-env:ro\\n      - work:/app/work\\n    environment:\\n      - COMPOSE_MANAGER_IMAGE_REPO=nearaidev/compose-manager\\n      # Keep launcher-driven recreates aligned with the initially booted\\n      # compose-manager container; the launcher's bundled compose file also\\n      # consumes this value.\\n      - CM_MIN_TAG_AGE_HOURS=${CM_MIN_TAG_AGE_HOURS:-0}\\n      - LAUNCHER_CHANNEL=${LAUNCHER_CHANNEL:-latest}\\n      - LAUNCHER_COMPOSE_PROJECT=dstack\\n      - LAUNCHER_ENV_FILE=/app/work/.env.launcher\\n      - LAUNCHER_BASE_ENV_FILE=/dstack-env\\n      - LAUNCHER_HEALTH_URL=http://127.0.0.1:8080/version\\n      # compose-manager does TLS/cert + S3 + git work on startup, so a container\\n      # recreate can take >60s to answer /version. 60s caused a genuine swap (and\\n      # its rollback) to be declared failed mid-startup -> false 30-min backoff.\\n      - LAUNCHER_HEALTH_TIMEOUT=180\\n      - LAUNCHER_COSIGN_IDENTITY_REGEXP=https://github.com/nearai/compose-manager/.github/workflows/.*\\n      - DOCKER_REGISTRY_USER=${DOCKER_REGISTRY_USER:-}\\n      - DOCKER_REGISTRY_TOKEN=${DOCKER_REGISTRY_TOKEN:-}\\n      - LAUNCHER_STATE_FILE=/app/work/launcher-state.json\\n    depends_on:\\n      - compose-manager\\n    labels:\\n      com.datadoghq.ad.logs: '[{\\\"source\\\": \\\"compose-manager-launcher\\\", \\\"service\\\": \\\"compose-manager-launcher\\\"}]'\\n    logging:\\n      driver: \\\"json-file\\\"\\n      options:\\n        max-size: \\\"100m\\\"\\n        max-file: \\\"10\\\"\\n        labels: \\\"com.datadoghq.ad.logs,com.docker.compose.service\\\"\\n\\n\\nnetworks:\\n  # Model compose files attach to this shared network so app-side telemetry can\\n  # reach management services without restarting the compose-manager CVM for\\n  # model scrape/log/trace changes.\\n  default:\\n    name: dstack_default\\n\\nvolumes:\\n  otelcol-management-storage:\\n\\n  work:\\n  # This volume can be re-used by other containers that need access to the TLS certificates.\\n  certs:\\n    name: certs\\n\\nconfigs:\\n  cloudflare_credentials:\\n    content: |\\n      dns_cloudflare_api_token = ${CLOUDFLARE_API_TOKEN}\\n\\n  \\n  # otelcol-management config for compose-manager/launcher telemetry only.\\n# Dollar signs are escaped as $$ so docker compose leaves OTel's\\n# ${env:...} references intact.\\n  otelcol_management_config:\\n    content: |\\n      receivers:\\n        filelog/docker_containers:\\n          include: [/var/lib/docker/containers/*/*-json.log]\\n          start_at: end\\n          storage: file_storage\\n          include_file_path: true\\n          operators:\\n            - type: json_parser\\n              parse_from: body\\n              parse_to: attributes\\n              timestamp:\\n                parse_from: attributes.time\\n                layout_type: gotime\\n                layout: '2006-01-02T15:04:05.999999999Z07:00'\\n              on_error: send_quiet\\n            - type: move\\n              from: attributes.log\\n              to: body\\n              if: 'attributes.log != nil'\\n            - type: move\\n              from: attributes.stream\\n              to: attributes[\\\"log.iostream\\\"]\\n              if: 'attributes.stream != nil'\\n            - type: remove\\n              field: attributes.time\\n              if: 'attributes.time != nil'\\n            - type: regex_parser\\n              parse_from: attributes[\\\"log.file.path\\\"]\\n              regex: '/var/lib/docker/containers/(?P<container_id>[a-f0-9]{12})[a-f0-9]*/'\\n              on_error: send_quiet\\n            - type: add\\n              field: attributes[\\\"service.name\\\"]\\n              value: cvm-docker\\n\\n        hostmetrics/cvm:\\n          collection_interval: 30s\\n          root_path: $${env:CVM_HOSTMETRICS_ROOT_PATH}\\n          scrapers:\\n            cpu: {}\\n            memory: {}\\n            load: {}\\n            paging: {}\\n            network: {}\\n            disk: {}\\n            filesystem:\\n              exclude_mount_points:\\n                mount_points: [\\\"^/dev(/.*)?$\\\", \\\"^/proc(/.*)?$\\\", \\\"^/sys(/.*)?$\\\", \\\"^/run(/.*)?$\\\", \\\"^/var/lib/docker(/.*)?$\\\"]\\n                match_type: regexp\\n\\n        docker_stats/cvm:\\n          endpoint: unix:///var/run/docker.sock\\n          collection_interval: 30s\\n          timeout: 10s\\n          api_version: \\\"1.44\\\"\\n          container_labels_to_metric_labels:\\n            com.docker.compose.service: compose_service\\n            com.docker.compose.project: compose_project\\n\\n        prometheus/self:\\n          config:\\n            scrape_configs:\\n              - job_name: otelcol-management\\n                scrape_interval: 30s\\n                static_configs:\\n                  - targets: ['localhost:8888']\\n\\n      processors:\\n        memory_limiter:\\n          check_interval: 1s\\n          limit_mib: 512\\n          spike_limit_mib: 128\\n\\n        resource:\\n          attributes:\\n            - key: host.name\\n              value: $${env:DD_HOSTNAME}\\n              action: upsert\\n            - key: cvm.name\\n              value: $${env:CVM_NAME}\\n              action: upsert\\n            - key: host.machine\\n              value: $${env:CVM_HOST}\\n              action: insert\\n            - key: deployment.environment\\n              value: $${env:ENV}\\n              action: upsert\\n            - key: service.namespace\\n              value: near-ai\\n              action: insert\\n\\n        transform/docker_metadata:\\n          error_mode: ignore\\n          log_statements:\\n            - context: log\\n              statements:\\n                - set(attributes[\\\"service.name\\\"], attributes[\\\"attrs\\\"][\\\"com.docker.compose.service\\\"]) where attributes[\\\"attrs\\\"] != nil and attributes[\\\"attrs\\\"][\\\"com.docker.compose.service\\\"] != nil\\n                - set(attributes[\\\"service.name\\\"], ParseJSON(attributes[\\\"attrs\\\"][\\\"com.datadoghq.ad.logs\\\"])[0][\\\"service\\\"]) where attributes[\\\"attrs\\\"] != nil and attributes[\\\"attrs\\\"][\\\"com.datadoghq.ad.logs\\\"] != nil\\n                - set(attributes[\\\"log.source\\\"], ParseJSON(attributes[\\\"attrs\\\"][\\\"com.datadoghq.ad.logs\\\"])[0][\\\"source\\\"]) where attributes[\\\"attrs\\\"] != nil and attributes[\\\"attrs\\\"][\\\"com.datadoghq.ad.logs\\\"] != nil\\n                - set(attributes[\\\"container.name\\\"], attributes[\\\"attrs\\\"][\\\"com.docker.compose.service\\\"]) where attributes[\\\"attrs\\\"] != nil and attributes[\\\"attrs\\\"][\\\"com.docker.compose.service\\\"] != nil\\n\\n        filter/management_logs:\\n          error_mode: ignore\\n          logs:\\n            log_record:\\n              - 'attributes[\\\"service.name\\\"] != \\\"compose-manager\\\" and attributes[\\\"service.name\\\"] != \\\"compose-manager-launcher\\\" and attributes[\\\"service.name\\\"] != \\\"dns-cloudflare\\\"'\\n\\n        groupbyattrs/docker_service:\\n          keys:\\n            - service.name\\n            - container.name\\n            - log.source\\n            - log.iostream\\n\\n        batch:\\n          send_batch_size: 1024\\n          send_batch_max_size: 2048\\n          timeout: 5s\\n\\n      exporters:\\n        otlphttp/gateway:\\n          endpoint: https://telemetry.infra.near.ai\\n          headers:\\n            Authorization: \\\"Bearer $${env:MONITORING_INGEST_TOKEN}\\\"\\n          # Keep source requests FIFO before the central gateway.\\n          sending_queue:\\n            num_consumers: 1\\n            queue_size: 128\\n            storage: file_storage\\n\\n      extensions:\\n        file_storage:\\n          directory: /var/lib/otelcol-management/storage\\n          create_directory: true\\n\\n      service:\\n        extensions: [file_storage]\\n        pipelines:\\n          logs/cvm:\\n            receivers: [filelog/docker_containers]\\n            processors: [memory_limiter, resource, transform/docker_metadata, filter/management_logs, groupbyattrs/docker_service, batch]\\n            exporters: [otlphttp/gateway]\\n          metrics/cvm_system:\\n            receivers: [hostmetrics/cvm, docker_stats/cvm]\\n            processors: [memory_limiter, resource, batch]\\n            exporters: [otlphttp/gateway]\\n          metrics/self:\\n            receivers: [prometheus/self]\\n            processors: [memory_limiter, resource, batch]\\n            exporters: [otlphttp/gateway]\\n        telemetry:\\n          metrics:\\n            address: localhost:8888\\n          logs:\\n            level: info\\n\",\n    \"kms_enabled\": true,\n    \"gateway_enabled\": false,\n    \"local_key_provider_enabled\": false,\n    \"key_provider_id\": \"\",\n    \"public_logs\": false,\n    \"public_sysinfo\": true,\n    \"allowed_envs\": [\n        \"BEARER_TOKEN\",\n        \"CM_MIN_TAG_AGE_HOURS\",\n        \"SLACK_WEBHOOK_URL\",\n        \"AWS_REGION\",\n        \"AWS_ACCESS_KEY_ID\",\n        \"AWS_SECRET_ACCESS_KEY\",\n        \"AWS_S3_BUCKET\",\n        \"CERTBOT_EMAIL\",\n        \"CLOUDFLARE_API_TOKEN\",\n        \"DOCKER_REGISTRY_USER\",\n        \"DOCKER_REGISTRY_TOKEN\",\n        \"LAUNCHER_CHANNEL\",\n        \"DD_API_KEY\",\n        \"HUGGING_FACE_HUB_TOKEN\",\n        \"PROXY_TOKEN\",\n        \"ENV\",\n        \"HOST_IP\",\n        \"DD_HOSTNAME\",\n        \"HOSTNAME\",\n        \"MONITORING_INGEST_TOKEN\",\n        \"CVM_NAME\",\n        \"CVM_HOST\"\n    ],\n    \"no_instance_id\": false,\n    \"secure_time\": false,\n    \"pre_launch_script\": \"#!/bin/bash\\nexport ENCRYPTION_KEY=$(cat /dstack/.host-shared/.appkeys.json | jq -r .k256_key)\\n\\n# Tune kernel for inference workloads\\necho 0 > /proc/sys/vm/swappiness            # prevent KV cache swap-out\\necho 5 > /proc/sys/vm/dirty_ratio            # reduce write-back cache pressure\\necho 1 > /proc/sys/vm/dirty_background_ratio # flush dirty pages sooner\\n\\n# Restore the launcher's last-known-good image override so a CVM reboot\\n# doesn't revert compose-manager to the Ansible-baked fallback digest.\\n# Parse the file as data (not `. file`) — sourcing would execute any\\n# shell metacharacters in the value, which is a root-RCE path if the\\n# launcher ever wrote an unvalidated digest. Path assumes default\\n# Docker data-root; dstack CVMs always use this.\\nOVERRIDES=\\\"/var/lib/docker/volumes/dstack_work/_data/.env.launcher\\\"\\n# Forced re-pin (repin_launcher_override=true): the launcher persists the\\n# last image it swapped to in $OVERRIDES, and the compose template gives\\n# that value precedence over the Ansible-pinned digest. After a promote we\\n# may intentionally recreate hosts whose persisted override is now stale\\n# (a pre-promote digest); overwrite it with the pinned image so\\n# compose-manager boots directly on the promoted digest instead of the\\n# superseded one. The launcher re-seeds this file from the running\\n# container on its next successful poll.\\nif [ \\\"false\\\" = \\\"true\\\" ]; then\\n  mkdir -p \\\"$(dirname \\\"$OVERRIDES\\\")\\\"\\n  printf 'COMPOSE_MANAGER_IMAGE=%s\\\\n' 'nearaidev/compose-manager@sha256:6e035c8fb99c1d31f41760d25af178683a658cca4afd73cd0d366fbb5bf884be' > \\\"$OVERRIDES\\\"\\n  echo \\\"[pre_launch] Re-pinned compose-manager image override to nearaidev/compose-manager@sha256:6e035c8fb99c1d31f41760d25af178683a658cca4afd73cd0d366fbb5bf884be\\\"\\nfi\\nif [ -f \\\"$OVERRIDES\\\" ]; then\\n  while IFS='=' read -r k v; do\\n    case \\\"$k\\\" in COMPOSE_MANAGER_IMAGE) export \\\"$k=$v\\\" ;; esac\\n  done < \\\"$OVERRIDES\\\"\\n  echo \\\"[pre_launch] Loaded compose-manager image override from $OVERRIDES\\\"\\nfi\\n\"\n}",
+ "event_log": [
+  {
+   "imr": 0,
+   "event_type": 2147483659,
+   "digest": "60a36090e82db2aa82a7abb76029b9ace69e9f0811b7029ff25a26a2e8b91c182696df92674ab571c42093383e1fcc71",
+   "event": "",
+   "event_payload": "095464785461626c65000100000000000000af96bb93f2b9b84e9462e0ba745642360090800000000000"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483658,
+   "digest": "344bc51c980ba621aaa00da3ed7436f7d6e549197dfe699515dfa2c6583d95e6412af21c097d473155875ffd561d6790",
+   "event": "",
+   "event_payload": "2946762858585858585858582d585858582d585858582d585858582d58585858585858585858585829000000c0ff000000000040080000000000"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483649,
+   "digest": "9dc3a1f80bcec915391dcda5ffbb15e7419f77eab462bbf72b42166fb70d50325e37b36f93537a863769bcf9bedae6fb",
+   "event": "",
+   "event_payload": "61dfe48bca93d211aa0d00e098032b8c0a00000000000000000000000000000053006500630075007200650042006f006f007400"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483649,
+   "digest": "6f2e3cbc14f9def86980f5f66fd85e99d63e69a73014ed8a5633ce56eca5b64b692108c56110e22acadcef58c3250f1b",
+   "event": "",
+   "event_payload": "61dfe48bca93d211aa0d00e098032b8c0200000000000000000000000000000050004b00"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483649,
+   "digest": "d607c0efb41c0d757d69bca0615c3a9ac0b1db06c557d992e906c6b7dee40e0e031640c7bfd7bcd35844ef9edeadc6f9",
+   "event": "",
+   "event_payload": "61dfe48bca93d211aa0d00e098032b8c030000000000000000000000000000004b0045004b00"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483649,
+   "digest": "08a74f8963b337acb6c93682f934496373679dd26af1089cb4eaf0c30cf260a12e814856385ab8843e56a9acea19e127",
+   "event": "",
+   "event_payload": "cbb219d73a3d9645a3bcdad00e67656f0200000000000000000000000000000064006200"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483649,
+   "digest": "18cc6e01f0c6ea99aa23f8a280423e94ad81d96d0aeb5180504fc0f7a40cb3619dd39bd6a95ec1680a86ed6ab0f9828d",
+   "event": "",
+   "event_payload": "cbb219d73a3d9645a3bcdad00e67656f03000000000000000000000000000000640062007800"
+  },
+  {
+   "imr": 0,
+   "event_type": 4,
+   "digest": "394341b7182cd227c5c6b07ef8000cdfd86136c4292b8e576573ad7ed9ae41019f5818b4b971c9effc60e1ad9f1289f0",
+   "event": "",
+   "event_payload": "00000000"
+  },
+  {
+   "imr": 0,
+   "event_type": 10,
+   "digest": "067dbea869d662401cfc128612472b688899b95fe801cec9e473388f2ce8d00c56b85a4511051a8d3eea3a345aa3d943",
+   "event": "",
+   "event_payload": "414350492044415441"
+  },
+  {
+   "imr": 0,
+   "event_type": 10,
+   "digest": "e618ef92fa90877695c4be4ce94e99f8cac644f92d40900a6141154f19ee8fefde460f8c75acac5dec3f4b1545259bcf",
+   "event": "",
+   "event_payload": "414350492044415441"
+  },
+  {
+   "imr": 0,
+   "event_type": 10,
+   "digest": "36ab67305a05ca84327abeb3ac4c3fff28dd40e23c4a2549d8c56914dafc6afac28b4687810e1ad91871a95de224c601",
+   "event": "",
+   "event_payload": "414350492044415441"
+  },
+  {
+   "imr": 1,
+   "event_type": 2147483651,
+   "digest": "48368ab87e5b8fecfb216bc26bbccfe13081bf8b67d4d2ee7de708e91819eeb56227db2349fc3b04ad5f5719ffd11809",
+   "event": "",
+   "event_payload": "18e0fd7a00000000008485000000000000000000000000002a000000000000000403140072f728144ab61e44b8c39ebdd7f893c7040412006b00650072006e0065006c0000007fff0400"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483650,
+   "digest": "1dd6f7b457ad880d840d41c961283bab688e94e4b59359ea45686581e90feccea3c624b1226113f824f315eb60ae0a7c",
+   "event": "",
+   "event_payload": "61dfe48bca93d211aa0d00e098032b8c0900000000000000020000000000000042006f006f0074004f0072006400650072000000"
+  },
+  {
+   "imr": 0,
+   "event_type": 2147483650,
+   "digest": "23ada07f5261f12f34a0bd8e46760962d6b4d576a416f1fea1c64bc656b1d28eacf7047ae6e967c58fd2a98bfa74c298",
+   "event": "",
+   "event_payload": "61dfe48bca93d211aa0d00e098032b8c08000000000000003e0000000000000042006f006f0074003000300030003000090100002c0055006900410070007000000004071400c9bdb87cebf8344faaea3ee4af6516a10406140021aa2c4614760345836e8ab6f46623317fff0400"
+  },
+  {
+   "imr": 1,
+   "event_type": 2147483655,
+   "digest": "77a0dab2312b4e1e57a84d865a21e5b2ee8d677a21012ada819d0a98988078d3d740f6346bfe0abaa938ca20439a8d71",
+   "event": "",
+   "event_payload": "43616c6c696e6720454649204170706c69636174696f6e2066726f6d20426f6f74204f7074696f6e"
+  },
+  {
+   "imr": 1,
+   "event_type": 4,
+   "digest": "394341b7182cd227c5c6b07ef8000cdfd86136c4292b8e576573ad7ed9ae41019f5818b4b971c9effc60e1ad9f1289f0",
+   "event": "",
+   "event_payload": "00000000"
+  },
+  {
+   "imr": 2,
+   "event_type": 6,
+   "digest": "0257b87a411a42f9cfdf0ee956d00036466b45641778729447186525ee013674452b3bbb838fc69cb09c0d174ba81b43",
+   "event": "",
+   "event_payload": "ed223b8f1a0000004c4f414445445f494d4147453a3a4c6f61644f7074696f6e7300"
+  },
+  {
+   "imr": 2,
+   "event_type": 6,
+   "digest": "fd01285d396a483667123c1a1a64d83b2dd5c6cef2b8803c97522be00c5255ff27feb79f6ea9b46c6856bbe2769bad66",
+   "event": "",
+   "event_payload": "ec223b8f0d0000004c696e757820696e6974726400"
+  },
+  {
+   "imr": 1,
+   "event_type": 2147483655,
+   "digest": "214b0bef1379756011344877743fdc2a5382bac6e70362d624ccf3f654407c1b4badf7d8f9295dd3dabdef65b27677e0",
+   "event": "",
+   "event_payload": "4578697420426f6f7420536572766963657320496e766f636174696f6e"
+  },
+  {
+   "imr": 1,
+   "event_type": 2147483655,
+   "digest": "0a2e01c85deae718a530ad8c6d20a84009babe6c8989269e950d8cf440c6e997695e64d455c4174a652cd080f6230b74",
+   "event": "",
+   "event_payload": "4578697420426f6f742053657276696365732052657475726e656420776974682053756363657373"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "f9974020ef507068183313d0ca808e0d1ca9b2d1ad0c61f5784e7157c362c06536f5ddacdad4451693f48fcc72fff624",
+   "event": "system-preparing",
+   "event_payload": ""
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "5c149c8719975dc6285de58d94db7e6a75c46e796c319b751db8ee14e6748b6c2638d13cf12f54396e08299944766537",
+   "event": "app-id",
+   "event_payload": "2c0a0c96cb6dbd659bf1446e2f3fce58172ff91b"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "97f7f483c72c3a2e21bc73952ed57b1b185fb9363e18d5a23d37c229e027ef205c48046f57cf8f304998ac9527e55268",
+   "event": "compose-hash",
+   "event_payload": "ae66f844658a7aee331dcb9fb59bd40323d71d192d37719e022cc4af8389265b"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "d0bed787caa18e335896efc220c8378cf9eb9c609c8bf10ad295d25166873110fba3bb0857542eb21fcf7c99ae6fc85c",
+   "event": "instance-id",
+   "event_payload": "fccd496ae28c19105777793efa98fbbd726219cc"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "98bd7e6bd3952720b65027fd494834045d06b4a714bf737a06b874638b3ea00ff402f7f583e3e3b05e921c8570433ac6",
+   "event": "boot-mr-done",
+   "event_payload": ""
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "9efa75a2c8cd830c5e540c63be1389fd19c27083d7b82248b33bdf7e3a9db0bfc5a0e8f7c34d0e3c43b7ff4a2de617da",
+   "event": "mr-kms",
+   "event_payload": "6a64e679539b4cd3588fd7f9434974d95b176d607df6e43ddc432aeb3ca6009e"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "47eb743b8bd069e71b6ab3cc6a7afbcd79fdd60bb6d4d630d0b6cd3746126ea4c074f0df8a517747bd1e23d4433ec9a6",
+   "event": "os-image-hash",
+   "event_payload": "91fd5d69ccee3e5ea4f2aeb8c9b632c4358c4ecfc29ba1aa6fb1e402af209829"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "9de6782ab6dfadb59a95bab8378e28a748331441c6f3acc822bcebc5cf01ceada3d5b2bb7d985aae8ac2482756895fe8",
+   "event": "key-provider",
+   "event_payload": "7b226e616d65223a226b6d73222c226964223a223330353933303133303630373261383634386365336430323031303630383261383634386365336430333031303730333432303030343339346161656432633734356536613435376362383335663766343734323366353766663365616437316239326162666636626463313464393035623331396632653133393631623432633530373430646165343439386439633531646437613265323237363630633965356335303430383363646130366236633131363832227d"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "ba51104636900268b0e059fa3d266419d079d1e94aea26fb9fcbb8d764bf4c89a67ac271b8a0d1a3989945132a111fc7",
+   "event": "storage-fs",
+   "event_payload": "7a6673"
+  },
+  {
+   "imr": 3,
+   "event_type": 134217729,
+   "digest": "1a76b2a80a0be71eae59f80945d876351a7a3fb8e9fd1ff1cede5734aa84ea11fd72b4edfbb6f04e5a85edd114c751bd",
+   "event": "system-ready",
+   "event_payload": ""
+  }
+ ]
+}

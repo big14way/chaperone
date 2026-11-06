@@ -12,6 +12,12 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 near-sdk.workspace = true
 near-contract-standards.workspace = true
+chaperone-tee = { path = "../../crates/chaperone-tee", features = ["contract"] }
+dcap-qvl = { version = "=0.7.1", default-features = false, features = ["contract", "std", "rustcrypto", "default-x509"] }
+hex = "0.4"
+borsh = "1"
+# dcap-qvl pulls getrandom 0.2; on wasm32 it needs a custom source (see near_getrandom in lib.rs).
+getrandom = { version = "0.2", features = ["custom"] }
 
 [dev-dependencies]
 near-sdk = { workspace = true, features = ["unit-testing"] }

@@ -17,8 +17,23 @@
 //!
 //! A rule can only make the outcome stricter. Nothing changes the amount or the recipient.
 
+mod tee;
+
+// Quote verification never needs randomness, but dcap-qvl links getrandom 0.2, which on wasm32
+// requires a registered source. Use the block's random seed.
+#[cfg(target_arch = "wasm32")]
+getrandom::register_custom_getrandom!(near_getrandom);
+#[cfg(target_arch = "wasm32")]
+fn near_getrandom(buf: &mut [u8]) -> Result<(), getrandom::Error> {
+    let seed = env::random_seed_array();
+    for (i, b) in buf.iter_mut().enumerate() {
+        *b = seed[i % seed.len()];
+    }
+    Ok(())
+}
 mod types;
 
+pub use tee::{AttestedChecker, TeeView};
 pub use types::*;
 
 use near_contract_standards::fungible_token::core::ext_ft_core;
@@ -81,6 +96,7 @@ pub mod reason {
     pub const ALL_REVOKED: &str = "ALL_REVOKED";
     pub const PENDING_EXPIRED: &str = "PENDING_EXPIRED";
     pub const TRANSFER_FAILED: &str = "TRANSFER_FAILED";
+    pub const CHECKER_NOT_ATTESTED: &str = "CHECKER_NOT_ATTESTED";
 }
 
 #[derive(BorshStorageKey)]
@@ -522,6 +538,10 @@ impl Chaperone {
     #[payable]
     pub fn set_checker(&mut self, checker_pk: PublicKey) {
         self.assert_owner();
+        require!(
+            !tee::enforced(),
+            "TEE mode: the checker key can only change through register_checker"
+        );
         assert_ed25519(&checker_pk, "checker_pk");
         self.checker_pk = checker_pk;
     }
@@ -823,6 +843,7 @@ impl Chaperone {
         {
             return Err(reason::BAD_VERDICT);
         }
+        tee::require_attested(&self.checker_pk)?;
         let sig: [u8; 64] = v
             .signature
             .0

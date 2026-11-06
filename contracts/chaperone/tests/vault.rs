@@ -8,7 +8,7 @@ mod common;
 
 use chaperone::{AgentView, Outcome, SpendRequest, Transfer, VaultInfo, Verdict, reason};
 use common::*;
-use near_sdk::serde_json::json;
+use near_sdk::serde_json::{self as serde_json, Value, json};
 
 #[tokio::test]
 async fn allow_within_caps_pays_vendor() -> anyhow::Result<()> {
@@ -635,5 +635,86 @@ async fn owner_upgrades_code_and_state_survives_others_cannot() -> anyhow::Resul
     assert_eq!(after.log_len, before.log_len);
     assert_eq!(after.agents, before.agents);
     assert_eq!(after.owner, before.owner);
+    Ok(())
+}
+
+fn tee_fixture() -> (Value, Value, String, Value) {
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../crates/chaperone-tee/tests/fixtures/");
+    let read = |f: &str| std::fs::read_to_string(format!("{dir}{f}")).unwrap();
+    let tcb: Value = serde_json::from_str(&read("nearai_tcb_info.json")).unwrap();
+    let collateral: Value = serde_json::from_str(&read("nearai_collateral.json")).unwrap();
+    let quote = read("nearai_quote.hex").trim().to_string();
+    let policy = json!({
+        "compose_hashes": [tcb["compose_hash"].as_str().unwrap()],
+        "os": [{ "mrtd": tcb["mrtd"], "rtmr0": tcb["rtmr0"], "rtmr1": tcb["rtmr1"], "rtmr2": tcb["rtmr2"] }],
+        "accepted_tcb_statuses": []
+    });
+    (tcb, collateral, quote, policy)
+}
+
+#[tokio::test]
+async fn tee_mode_requires_an_attested_checker() -> anyhow::Result<()> {
+    let env = Env::new().await?;
+    let buyer = env.add_agent("buyer", None, None).await?;
+    let (_, _, _, policy) = tee_fixture();
+
+    // Before TEE mode the owner-set checker works.
+    let ok = env.spend_with(&buyer, env.vendor.id(), 5 * USDC, Verdict::Allow, 5, &[]).await?;
+    assert_outcome(&ok, Outcome::Allow);
+
+    // A stranger cannot set the TEE policy.
+    let res = env.attacker.call(env.vault.id(), "set_checker_tee_policy").args_json(json!({ "policy": policy })).deposit(ONE_YOCTO).max_gas().transact().await?;
+    assert!(res.is_failure());
+
+    // The owner turns TEE mode on: the existing checker key is not attested, so its verdicts are refused.
+    assert!(env.owner_call("set_checker_tee_policy", json!({ "policy": policy })).await?.is_success());
+    let view: chaperone::TeeView = env.view("get_checker_tee", json!({})).await?;
+    assert!(view.enforced && !view.checker_attested);
+    let refused = env.spend_with(&buyer, env.vendor.id(), 5 * USDC, Verdict::Allow, 5, &[]).await?;
+    assert_outcome(&refused, Outcome::Block);
+    assert!(has(&refused, reason::CHECKER_NOT_ATTESTED));
+
+    // In TEE mode the owner cannot swap the checker key by hand.
+    let res = env.owner_call("set_checker", json!({ "checker_pk": checker_pk_string(&env.checker) })).await?;
+    assert!(res.is_failure());
+
+    // Turning TEE mode off restores the owner-set checker.
+    assert!(env.owner_call("set_checker_tee_policy", json!({ "policy": null })).await?.is_success());
+    let ok = env.spend_with(&buyer, env.vendor.id(), 5 * USDC, Verdict::Allow, 5, &[]).await?;
+    assert_outcome(&ok, Outcome::Allow);
+    Ok(())
+}
+
+#[tokio::test]
+async fn register_checker_verifies_a_real_tdx_quote_on_chain() -> anyhow::Result<()> {
+    let env = Env::new().await?;
+    let (tcb, collateral, quote, policy) = tee_fixture();
+
+    // No policy yet: registration is refused.
+    let res = env.attacker.call(env.vault.id(), "register_checker")
+        .args_json(json!({ "public_key": checker_pk_string(&env.checker), "quote": quote, "collateral": collateral, "tcb_info": tcb }))
+        .max_gas().transact().await?;
+    assert!(format!("{:?}", res.into_result().unwrap_err()).contains("no TEE policy"));
+
+    assert!(env.owner_call("set_checker_tee_policy", json!({ "policy": policy })).await?.is_success());
+
+    // A real Intel TDX quote (NEAR AI Cloud's) passes DCAP, TCB and measurement checks on chain, but its
+    // report data binds NEAR AI's signing key, not this vault and this checker key, so it is refused.
+    let res = env.attacker.call(env.vault.id(), "register_checker")
+        .args_json(json!({ "public_key": checker_pk_string(&env.checker), "quote": quote, "collateral": collateral, "tcb_info": tcb }))
+        .max_gas().transact().await?;
+    let gas = res.total_gas_burnt;
+    let err = format!("{:?}", res.into_result().unwrap_err());
+    assert!(err.contains("report_data mismatch"), "expected the binding check to fail last, got: {err}");
+    println!("register_checker with a real quote burnt {} Tgas", gas.as_tgas());
+    assert!(gas.as_tgas() < 300, "verification must fit in one transaction");
+
+    // A forged quote fails DCAP.
+    let mut bad = quote.clone();
+    bad.replace_range(200..202, "00");
+    let res = env.attacker.call(env.vault.id(), "register_checker")
+        .args_json(json!({ "public_key": checker_pk_string(&env.checker), "quote": bad, "collateral": collateral, "tcb_info": tcb }))
+        .max_gas().transact().await?;
+    assert!(format!("{:?}", res.into_result().unwrap_err()).contains("attestation rejected"));
     Ok(())
 }
