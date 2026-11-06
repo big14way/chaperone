@@ -1,10 +1,11 @@
 "use client";
-// NEAR Wallet Selector (core only; the stock modal bundles its own React). The owner signs in here;
+// NEAR Wallet Selector (core only; the stock modal bundles its own React). MyNearWallet is left out:
+// it stopped app connections and approvals on 1 Nov 2026. The owner signs in here;
 // every owner method attaches 1 yoctoNEAR, which only a full-access key can do, so the wallet
 // always asks for confirmation.
 import { actionCreators, setupWalletSelector, type WalletSelector } from "@near-wallet-selector/core";
 import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
-import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
+import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { NETWORK, ONE_YOCTO, OWNER_GAS, VAULT_ID } from "./config";
 
@@ -34,7 +35,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let sub: { unsubscribe(): void } | undefined;
     let cancelled = false;
-    setupWalletSelector({ network: NETWORK, modules: [setupMyNearWallet(), setupIntearWallet()] }).then((s) => {
+    setupWalletSelector({ network: NETWORK, modules: [setupMeteorWallet(), setupIntearWallet()] }).then((s) => {
       if (cancelled) return;
       setSelector(s);
       const sync = () => {
