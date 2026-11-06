@@ -12,3 +12,10 @@ neardev/
 .chaperone/
 *.tsbuildinfo
 out/
+docs/video/launch/frames/
+docs/video/launch/preview/
+docs/video/launch/out/
+docs/video/launch/shots/
+docs/video/launch/*.wav
+docs/video/launch/*.jpg
+docs/video/launch/*.png

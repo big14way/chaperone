@@ -1,4 +1,4 @@
-// pnpm demo:warn  -  the buyer asks for 10 USDC, well above its 7-day average of 6, so the checker
+// pnpm demo:warn  -  the buyer asks for WARN_USDC (default 10), well above its 7-day average, so the checker
 // rates it WARN and the vault parks it. Nothing moves until the owner approves it in the web app
 // (pnpm web) or rejects it. On the sandbox it is approved here with the owner key instead.
 import { pathToFileURL } from "node:url";
@@ -12,11 +12,12 @@ import { warnDemo } from "./lib/scenes.ts";
 export async function parkWarn(ctx: DemoContext): Promise<boolean> {
   if (ctx.network === "sandbox") return warnDemo(ctx);
   banner("WARN: an unusual amount waits for the owner");
-  step("buyer pays the vendor 10 USDC, well above its 7-day average");
+  const usdc = process.env.WARN_USDC || "10";
+  step(`buyer pays the vendor ${usdc} USDC, well above its 7-day average`);
   const r = await chaperonePay(ctx.toolContext(ctx.buyer, narrate(ctx)), {
     recipient: ctx.vendor,
-    amount_usdc: "10",
-    memo: "LDL-1043",
+    amount_usdc: usdc,
+    memo: "LDL-1044",
   });
   const pending = await ctx.vault.pending();
   for (const p of pending) info(`pending #${p.id}: ${p.agent_label} ${fromUnits(p.amount)} USDC -> ${p.recipient}`);
