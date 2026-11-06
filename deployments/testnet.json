@@ -1,0 +1,30 @@
+{
+  "network": "testnet",
+  "vault": "chaperone.testnet",
+  "owner": "chaperone-owner.testnet",
+  "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+  "checker_pk": "ed25519:36jsg1kF4JaEgojymtmmRRovkUdKNtkxdNL6QHh8BvqG",
+  "agents": [
+    {
+      "label": "buyer",
+      "public_key": "ed25519:DonRRpPkyGzaHhQZu8NwM8Er4ua53dffy3zabHEZLUsf"
+    },
+    {
+      "label": "researcher",
+      "public_key": "ed25519:FSefcenrVsb5mubZ9MGrWhbVWcpRC7bFBXi4W2HZhD9b"
+    }
+  ],
+  "policy": {
+    "daily_cap": "100000000",
+    "per_tx_cap": "50000000",
+    "allow_recipients": [
+      "chaperone-vendor.testnet"
+    ],
+    "allow_tokens": [
+      "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af"
+    ],
+    "new_recipient_timelock_ms": 86400000,
+    "warn_requires_owner": true
+  },
+  "recorded_at": "2026-11-06T12:37:01.796Z"
+}

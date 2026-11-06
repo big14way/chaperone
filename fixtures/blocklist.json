@@ -6,6 +6,12 @@
       "reason": "PAYMENT_REDIRECT_SCAM",
       "evidence": "Demo: hidden 'payment address changed' instruction injected into a vendor invoice page (fixtures/poisoned-vendor.html).",
       "reported_at": "2026-11-05T00:00:00Z"
+    },
+    {
+      "account_id": "chaperone-attacker.testnet",
+      "reason": "PAYMENT_REDIRECT_SCAM",
+      "evidence": "Demo: hidden 'payment address changed' instruction injected into a vendor invoice page (fixtures/poisoned-vendor.html).",
+      "reported_at": "2026-11-06T00:00:00Z"
     }
   ]
 }
