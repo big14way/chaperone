@@ -143,7 +143,9 @@ Run on testnet with `NEAR_AI_API_KEY` set (model `deepseek-ai/DeepSeek-V4.1-Flas
 
 This model resisted the injection and tried to pay the real 6 USDC invoice; the vault still held it because the agent already had a request waiting for the owner (`PENDING_EXISTS`, one open request per agent). A good model resisted this time. A treasury cannot depend on "this time": the scripted run above shows the fooled path, and the vault refuses it either way. The attestation check binds the quote to our nonce and the model's signing address; it does not verify Intel's DCAP signature chain (use [NEAR's verifier](https://cloud.near.ai/verify) for that).
 
-The second attempt shows that the checker is not the only defence.The same agent then pays a clean invoice from the allowlisted vendor (`pnpm demo:legit`, real testnet run):
+### The legit payment
+
+The same agent then pays a clean invoice from the allowlisted vendor (`pnpm demo:legit`, real testnet run):
 
 ```
 > The buyer agent settles a clean invoice: 6 USDC to chaperone-vendor.testnet (on the owner's allowlist).
