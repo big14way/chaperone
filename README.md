@@ -4,6 +4,8 @@
 
 **Live dashboard:** [getchaperone.vercel.app](https://getchaperone.vercel.app) (reads the `chaperone.testnet` vault; no wallet needed to audit it)
 
+**Demo video (3:44, narrated):** [on X](https://x.com/Big14teru/status/2118790570717950450), the attack, a real TEE-attested model, an owner approval and every refusal on testnet. **Launch post:** [x.com/Big14teru/status/2118752617073414491](https://x.com/Big14teru/status/2118752617073414491)
+
 Chaperone is a policy vault on NEAR for AI agents. The agent holds only a function-call key that can call one method, `request_spend`, on the vault. Every spend needs a signed counterparty risk verdict (allow / warn / block) and must pass owner-set caveats. Warn-band requests wait for the owner's approval.
 
 ## Problem
