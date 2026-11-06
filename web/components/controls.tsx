@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { amount, fromUnits, shortKey, toUnits, tokenName } from "@/lib/format";
-import type { AgentView, Policy } from "@/lib/types";
+import type { AgentView, Policy, TeeView } from "@/lib/types";
 import type { OwnerProps } from "./approvals";
 import { AgentGlyph, Icon } from "./glyphs";
 import { Button, Card, CheckItem, Meter } from "./ui";
@@ -157,7 +157,7 @@ function fromDraft(d: Draft): Policy {
 
 const waitText = (ms: number) => (ms === 0 ? "No waiting period" : ms >= 3_600_000 ? `${+(ms / 3_600_000).toFixed(2)} hours` : `${Math.round(ms / 60_000)} minutes`);
 
-export function PolicySection({ policy, version, agents, isOwner, connected, busy, act }: OwnerProps & { policy: Policy; version: number; agents: number }) {
+export function PolicySection({ policy, version, agents, tee, checkerPk, isOwner, connected, busy, act }: OwnerProps & { policy: Policy; version: number; agents: number; tee: TeeView | null; checkerPk: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => toDraft(policy));
   const [error, setError] = useState<string | null>(null);
@@ -199,6 +199,7 @@ export function PolicySection({ policy, version, agents, isOwner, connected, bus
                 <Rule k="New recipients wait" v={waitText(policy.new_recipient_timelock_ms)} />
                 <Rule k="Unusual payments" v={policy.warn_requires_owner ? "Wait for your approval" : "Pay within caps"} />
                 <Rule k="Tokens" v={policy.allow_tokens.map(tokenName).join(", ")} />
+                <Rule k="Risk checker" v={<CheckerTrust tee={tee} checkerPk={checkerPk} />} />
                 <div className="py-4">
                   <dt className="text-[14px]">Approved recipients</dt>
                   <dd className="mt-3 flex flex-wrap gap-2">
@@ -276,6 +277,29 @@ function Rule({ k, v }: { k: string; v: ReactNode }) {
       <dt>{k}</dt>
       <dd className="tnum text-right font-mono text-[14px]">{v}</dd>
     </div>
+  );
+}
+
+/** Who may sign verdicts: an owner-set key, or a key the vault itself verified came from an Intel TDX enclave. */
+function CheckerTrust({ tee, checkerPk }: { tee: TeeView | null; checkerPk: string }) {
+  if (tee?.enforced && tee.checker_attested && tee.attested)
+    return (
+      <span className="inline-flex flex-col items-end gap-1">
+        <span className="inline-flex items-center gap-1.5 text-good">
+          <span className="h-1.5 w-1.5 rounded-full bg-good" />
+          Intel TDX enclave, verified on chain
+        </span>
+        <span className="text-[12px] text-muted">
+          key {shortKey(tee.attested.public_key)} · image {tee.attested.compose_hash.slice(0, 10)} · TCB {tee.attested.tcb_status}
+        </span>
+      </span>
+    );
+  if (tee?.enforced) return <span className="text-warn">TEE required, no attested checker yet</span>;
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <span>Key set by the owner</span>
+      <span className="text-[12px] text-muted">{shortKey(checkerPk)} · TEE mode off</span>
+    </span>
   );
 }
 

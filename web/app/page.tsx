@@ -97,7 +97,7 @@ function Dashboard() {
           <Approvals pending={snap.pending} agents={snap.agents} policy={snap.policy} {...owner} />
           <Activity log={snap.log} total={snap.info.log_len} policy={snap.policy} />
           <Agents agents={snap.agents} policy={snap.policy} owner={snap.info.owner} {...owner} />
-          <PolicySection policy={snap.policy} version={snap.info.policy_version} agents={snap.agents.length} {...owner} />
+          <PolicySection policy={snap.policy} version={snap.info.policy_version} agents={snap.agents.length} tee={snap.tee} checkerPk={snap.info.checker_pk} {...owner} />
         </>
       )}
 

@@ -1,6 +1,6 @@
 // Read-only access to the vault over public JSON-RPC. No keys, no wallet.
 import { RPC_URL, VAULT_ID } from "./config";
-import type { AgentView, LogEntry, Policy, SpendRequest, VaultInfo, VaultSnapshot } from "./types";
+import type { AgentView, LogEntry, Policy, SpendRequest, TeeView, VaultInfo, VaultSnapshot } from "./types";
 
 function b64(s: string): string {
   return btoa(String.fromCharCode(...new TextEncoder().encode(s)));
@@ -25,12 +25,13 @@ export async function view<T>(contractId: string, method: string, args: Record<s
 }
 
 export async function loadVault(vault = VAULT_ID): Promise<VaultSnapshot> {
-  const [info, policy, agents, pending, log] = await Promise.all([
+  const [info, policy, agents, pending, log, tee] = await Promise.all([
     view<VaultInfo>(vault, "get_info"),
     view<Policy>(vault, "get_policy"),
     view<AgentView[]>(vault, "get_agents"),
     view<SpendRequest[]>(vault, "get_pending"),
     view<LogEntry[]>(vault, "get_log", { limit: 100 }),
+    view<TeeView>(vault, "get_checker_tee").catch(() => null),
   ]);
   const balances: Record<string, string> = {};
   await Promise.all(
@@ -42,5 +43,5 @@ export async function loadVault(vault = VAULT_ID): Promise<VaultSnapshot> {
       }
     }),
   );
-  return { info, policy, agents, pending, log: [...log].reverse(), balances, fetchedAt: Date.now() };
+  return { info, policy, agents, pending, log: [...log].reverse(), balances, tee, fetchedAt: Date.now() };
 }

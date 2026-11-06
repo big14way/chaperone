@@ -66,8 +66,16 @@ export interface SpendRequest {
   version: number;
 }
 
+/** get_checker_tee: whether verdicts must come from a checker key attested by an Intel TDX quote. */
+export interface TeeView {
+  enforced: boolean;
+  checker_attested: boolean;
+  attested: { public_key: string; compose_hash: string; mrtd: string; tcb_status: string; registered_ms: number } | null;
+}
+
 export interface VaultSnapshot {
   info: VaultInfo;
+  tee: TeeView | null;
   policy: Policy;
   agents: AgentView[];
   pending: SpendRequest[];
