@@ -1,0 +1,55 @@
+{
+ "base": "http://127.0.0.1:3100",
+ "viewport": [
+  1440,
+  810
+ ],
+ "window": [
+  1440,
+  900
+ ],
+ "video": [
+  1920,
+  1080
+ ],
+ "out": "clips",
+ "accent": "#111111",
+ "scenes": [
+  {
+   "name": "term_attest",
+   "viewport": [
+    1920,
+    1080
+   ],
+   "terminal": {
+    "title": "chaperone \u00b7 enclave attestation, live",
+    "schedule": "schedules/attest.json",
+    "end": 16
+   }
+  },
+  {
+   "name": "term_register",
+   "viewport": [
+    1920,
+    1080
+   ],
+   "terminal": {
+    "title": "chaperone \u00b7 owner approves, vault verifies on chain",
+    "schedule": "schedules/register.json",
+    "end": 13
+   }
+  },
+  {
+   "name": "term_attack",
+   "viewport": [
+    1920,
+    1080
+   ],
+   "terminal": {
+    "title": "chaperone \u00b7 enclave-signed verdicts on testnet",
+    "schedule": "schedules/attack.json",
+    "end": 30
+   }
+  }
+ ]
+}

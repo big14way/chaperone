@@ -1,0 +1,37 @@
+{
+ "base": "http://127.0.0.1:3100",
+ "viewport": [1440, 810],
+ "window": [1440, 900],
+ "video": [1920, 1080],
+ "out": "clips",
+ "accent": "#111111",
+ "scenes": [
+  {
+   "name": "dash_tee",
+   "steps": [
+    ["goto", "/", "#approvals"],
+    ["waitFor", "header .grid .tnum"],
+    ["waitFor", "text=Intel TDX enclave, verified on chain"],
+    ["wait", 1500],
+    ["scrollTo", "#policy", 40, 1600],
+    ["wait", 1400],
+    ["zoom", "text=Intel TDX enclave, verified on chain", 1.7, 1000, 4200],
+    ["unzoom", 700],
+    ["wait", 600]
+   ]
+  },
+  {
+   "name": "dash_audit",
+   "steps": [
+    ["goto", "/", "#activity"],
+    ["waitFor", "#activity tbody tr"],
+    ["wait", 1500],
+    ["scrollTo", "#activity", 40, 1500],
+    ["wait", 1200],
+    ["zoom", "#activity table", 1.25, 900, 3800],
+    ["unzoom", 700],
+    ["wait", 500]
+   ]
+  }
+ ]
+}

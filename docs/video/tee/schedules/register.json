@@ -1,0 +1,110 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> pnpm tee policy",
+  "type": true,
+  "cps": 55
+ },
+ {
+  "t": 2.06,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 2.14,
+  "html": "approving the checker image for chaperone.testnet"
+ },
+ {
+  "t": 2.22,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 2.3,
+  "html": "  compose 31d5ee67a701e18f222fb058325c3bade861d1a688ac4207f5dd43ae568dbf16"
+ },
+ {
+  "t": 2.38,
+  "html": "  os mrtd 7fe60787222bd394cb516abca2435f22…"
+ },
+ {
+  "t": 4.06,
+  "html": "<span class=\"link\">  tx 4yBNxN9m7wJJNLecsLm2UQk1Jt4tuQHgsdwHzdC8CdJA</span>"
+ },
+ {
+  "t": 4.33,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 4.41,
+  "html": "TEE status of chaperone.testnet"
+ },
+ {
+  "t": 4.49,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 4.57,
+  "html": "<span class=\"ok\">  TEE mode:          enforced</span>"
+ },
+ {
+  "t": 4.65,
+  "html": "  checker key:       ed25519:36jsg1kF4JaEgojymtmmRRovkUdKNtkxdNL6QHh8BvqG"
+ },
+ {
+  "t": 4.73,
+  "html": "<span class=\"bad\">  checker attested:  no: verdicts are rejected</span>"
+ },
+ {
+  "t": 6.0067272498390905,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> pnpm tee register",
+  "type": true,
+  "cps": 55
+ },
+ {
+  "t": 7.44,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 7.52,
+  "html": "registering ed25519:65bZtu8nGVNZhEm3CQRzBG7vMokhYqYbv3FFXAWQEt98 on chaperone.testnet"
+ },
+ {
+  "t": 7.6,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 7.68,
+  "html": "<span class=\"kw\">&gt; register_checker (59 KB of attestation, verified on chain)</span>"
+ },
+ {
+  "t": 9.36,
+  "html": "<span class=\"link\">  tx GRVbEdFDueUmuF17tA9JVbnnVSerGFT5xtju4qRkJ6by (188 Tgas)</span>"
+ },
+ {
+  "t": 9.44,
+  "html": "  agents and the dashboard should now use CHECKER_URL=https://b70ac991…-8787.dstack-pha1-prod9.phala.network"
+ },
+ {
+  "t": 9.74,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 9.82,
+  "html": "TEE status of chaperone.testnet"
+ },
+ {
+  "t": 9.9,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 9.98,
+  "html": "<span class=\"ok\">  TEE mode:          enforced</span>"
+ },
+ {
+  "t": 10.06,
+  "html": "  checker key:       ed25519:65bZtu8nGVNZhEm3CQRzBG7vMokhYqYbv3FFXAWQEt98"
+ },
+ {
+  "t": 10.14,
+  "html": "<span class=\"ok\">  checker attested:  yes</span>"
+ }
+]

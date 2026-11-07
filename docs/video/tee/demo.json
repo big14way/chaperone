@@ -1,0 +1,209 @@
+{
+ "voice": "en-US-BrianMultilingualNeural",
+ "voice_rate": "+8%",
+ "crossfade": 0.5,
+ "sfx_gain": 0.5,
+ "brand": {
+  "name": "chaperone",
+  "domain": "getchaperone.vercel.app",
+  "logo": "img/logo.png",
+  "logo_inverse": "img/logo.png",
+  "paper": "#fcfbf9",
+  "paper_deep": "#e3dfd6",
+  "ink": "#0a0a09",
+  "ink_soft": "#3d3c37",
+  "ink_faint": "#8a887f",
+  "accent": "#5f6d00",
+  "accent_soft": "#e4f222",
+  "card": "#0e0e0d",
+  "fonts": {
+   "display": "fonts/mono-400.ttf",
+   "bold": "fonts/inter-500.ttf",
+   "semi": "fonts/inter-300.ttf"
+  }
+ },
+ "clips_dir": "clips",
+ "work_dir": "build",
+ "output": "out/chaperone-tee-live.mp4",
+ "scenes": [
+  {
+   "id": "s0",
+   "kind": "title",
+   "tagline": "The risk checker now runs in an Intel TDX enclave.",
+   "tag": "Recorded live \u00b7 Phala Cloud \u00b7 NEAR testnet \u00b7 Nov 7, 2026",
+   "vo": "Chaperone's risk checker now runs inside an Intel TDX enclave, and the NEAR vault checks the proof itself. Recorded live."
+  },
+  {
+   "id": "s1",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "phala_compose.mp4",
+   "cut": [
+    0,
+    7
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 1.0,
+   "step": "01",
+   "head": "The checker image, pinned by digest",
+   "sub": "Built from the public repo by CI, deployed to a Phala Cloud confidential VM.",
+   "vo": "The checker image is built from the public repo and pinned by its digest. We deploy it to a confidential VM on Phala Cloud."
+  },
+  {
+   "id": "s2",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "phala_running.mp4",
+   "cut": [
+    0,
+    6
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 1.0,
+   "step": "02",
+   "head": "Running inside the enclave",
+   "sub": "At boot it makes its signing key in enclave memory. Nothing outside ever sees it.",
+   "vo": "It boots in seconds and makes its signing key inside the enclave. Nothing outside ever sees it."
+  },
+  {
+   "id": "s3",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "term_attest.webm",
+   "cut": [
+    0.3,
+    16.5
+   ],
+   "crop": [
+    1760,
+    960,
+    80,
+    60
+   ],
+   "max_speed": 1.6,
+   "step": "03",
+   "head": "An Intel-signed quote binds this vault and this key",
+   "sub": "Checked with the same Rust code the contract runs: DCAP chain, RTMR3 replay, compose hash.",
+   "vo": "Its attestation is an Intel-signed quote that binds this vault and this key. We check it with the same Rust code the contract runs."
+  },
+  {
+   "id": "s4",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "term_register.webm",
+   "cut": [
+    0.3,
+    13.5
+   ],
+   "crop": [
+    1760,
+    960,
+    80,
+    60
+   ],
+   "max_speed": 1.6,
+   "step": "04",
+   "head": "The vault verifies the quote on chain",
+   "sub": "The owner approves the image. register_checker checks 59 KB of attestation for 188 Tgas.",
+   "vo": "The owner approves that image. Then the vault verifies the quote itself, on chain, and only then trusts the key."
+  },
+  {
+   "id": "s5",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "dash_tee.webm",
+   "cut": [
+    4.0,
+    13.5
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 1.8,
+   "step": "05",
+   "head": "Live on the dashboard",
+   "sub": "Read from the contract: Intel TDX enclave, verified on chain, TCB up to date.",
+   "vo": "The dashboard reads it straight from the contract."
+  },
+  {
+   "id": "s6",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "term_attack.webm",
+   "cut": [
+    0.3,
+    30.4
+   ],
+   "crop": [
+    1760,
+    960,
+    80,
+    60
+   ],
+   "max_speed": 2.4,
+   "step": "06",
+   "head": "Every verdict now comes from the enclave",
+   "sub": "The real invoice is paid. 500 USDC to a flagged scammer is blocked. A self-signed verdict is refused.",
+   "vo": "Now every verdict comes from the enclave. The real invoice gets paid. Five hundred USDC to a flagged scammer is blocked. And a verdict the agent signs for itself is refused."
+  },
+  {
+   "id": "s7",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "dash_audit.webm",
+   "cut": [
+    4.0,
+    7.2
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 1.0,
+   "step": "07",
+   "head": "Every decision, on the record",
+   "sub": "The vault's own log on NEAR testnet, read by the dashboard.",
+   "vo": "And every decision lands in the vault's log, on chain."
+  },
+  {
+   "id": "s99",
+   "kind": "end",
+   "lines": [
+    "The agent can only ask.",
+    "The rules decide.",
+    "The checker proves where it runs."
+   ],
+   "links": [
+    [
+     "Live vault",
+     "getchaperone.vercel.app"
+    ],
+    [
+     "Code",
+     "github.com/big14way/chaperone"
+    ],
+    [
+     "Contract",
+     "chaperone.testnet"
+    ]
+   ],
+   "footer": "Recorded live on Phala Cloud and NEAR testnet, Nov 7 2026",
+   "vo": "Chaperone. The agent can only ask, the rules decide, and now the checker proves where it runs."
+  }
+ ]
+}

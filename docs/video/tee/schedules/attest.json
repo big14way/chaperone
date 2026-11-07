@@ -1,0 +1,86 @@
+[
+ {
+  "t": 0.5,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> curl -s https://b70ac991…-8787.dstack-pha1-prod9.phala.network/health | python3 -m json.tool",
+  "type": true,
+  "cps": 55
+ },
+ {
+  "t": 4.22,
+  "html": "{"
+ },
+ {
+  "t": 4.3,
+  "html": "<span class=\"ok\">    \"ok\": true,</span>"
+ },
+ {
+  "t": 4.38,
+  "html": "    \"network\": \"testnet\","
+ },
+ {
+  "t": 4.46,
+  "html": "    \"vault\": \"chaperone.testnet\","
+ },
+ {
+  "t": 4.54,
+  "html": "    \"checker_pk\": \"ed25519:65bZtu8nGVNZhEm3CQRzBG7vMokhYqYbv3FFXAWQEt98\","
+ },
+ {
+  "t": 4.62,
+  "html": "    \"blocklist\": \"bundled:fixtures/blocklist.json+near:chaperone-registry.testnet\""
+ },
+ {
+  "t": 4.7,
+  "html": "}"
+ },
+ {
+  "t": 5.977727349021219,
+  "html": "<span class=\"p\">➜</span> <span class=\"dim\">chaperone</span> pnpm tee attest https://b70ac991…-8787.dstack-pha1-prod9.phala.network",
+  "type": true,
+  "cps": 55
+ },
+ {
+  "t": 8.53,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 8.61,
+  "html": "attestation of https://b70ac991…-8787.dstack-pha1-prod9.phala.network"
+ },
+ {
+  "t": 8.69,
+  "html": "<span class=\"dim\">========================================================================</span>"
+ },
+ {
+  "t": 10.5,
+  "html": "  vault:        chaperone.testnet"
+ },
+ {
+  "t": 10.58,
+  "html": "<span class=\"ok\">  checker key:  ed25519:65bZtu8nGVNZhEm3CQRzBG7vMokhYqYbv3FFXAWQEt98 (made inside the enclave)</span>"
+ },
+ {
+  "t": 10.66,
+  "html": "  images:       ghcr.io/big14way/chaperone-checker@sha256:d41133b59ca287785eec4a35dfa22a51f90c9ae8b374a73cdf2e9219c48d64ca"
+ },
+ {
+  "t": 10.74,
+  "html": "  compose hash: 31d5ee67a701e18f222fb058325c3bade861d1a688ac4207f5dd43ae568dbf16"
+ },
+ {
+  "t": 10.82,
+  "html": "  OS (MRTD):    7fe60787222bd394cb516abca2435f22…"
+ },
+ {
+  "t": 10.9,
+  "html": "<span class=\"kw\">&gt; fetching Intel collateral for the quote</span>"
+ },
+ {
+  "t": 12.98,
+  "html": "<span class=\"kw\">&gt; verifying locally (DCAP chain, report data, RTMR3 replay, compose hash, OS image)</span>"
+ },
+ {
+  "t": 14.39,
+  "html": "<span class=\"ok\">  verified: TCB UpToDate</span>"
+ }
+]

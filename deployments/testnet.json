@@ -58,6 +58,21 @@
     "vault_refill_tx": "8WBmMQ8himuZD6xmwujLvHtE6iBcLYDr94TAf88j5tPK",
     "recorded_at": "2026-11-07",
     "tee_off_tx": "GLcxQFckKvnWs5azNxeefaTTMifYAj72HctTovMqB1dz",
-    "status": "TEE mode off since 2026-11-07; checker key back to the hosted checker; CVM deleted"
+    "status": "TEE mode off since 2026-11-07; checker key back to the hosted checker; CVM deleted",
+    "runs": [
+      {
+        "date": "2026-11-07",
+        "note": "recorded live run",
+        "app_id": "b70ac9918c321d4265d75f85db30e29a274eca4e",
+        "checker_pk": "ed25519:65bZtu8nGVNZhEm3CQRzBG7vMokhYqYbv3FFXAWQEt98",
+        "policy_tx": "4yBNxN9m7wJJNLecsLm2UQk1Jt4tuQHgsdwHzdC8CdJA",
+        "register_tx": "GRVbEdFDueUmuF17tA9JVbnnVSerGFT5xtju4qRkJ6by",
+        "attested_allow_tx": "DcLtKiuUzMRgVz9vxYiWidEb9FWf7eDz6mLV9D4ZDaCL",
+        "attested_block_tx": "MqfyrNyn8bwpykCfpjG3igrvTGuHv3TLUta6N7UhFZv",
+        "forged_refused_tx": "3wqsEBktTTWXo5ouJD2WyyVnwq8bL6CrZchGConK5gLq",
+        "tee_off_tx": "9tSKH3me2x3qqvhgPAdFTbPcmn3AEgkGka9nZPYC9Jkp",
+        "hosted_key_tx": "7iffypGjtRjc5GgxLhCGqvqwrMjGzLxjorMJWSjGsMTv"
+      }
+    ]
   }
 }
