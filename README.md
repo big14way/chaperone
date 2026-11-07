@@ -6,6 +6,8 @@
 
 **Demo video (3:44, narrated):** [on X](https://x.com/Big14teru/status/2118790570717950450), the attack, a real TEE-attested model, an owner approval and every refusal on testnet. **Launch post:** [x.com/Big14teru/status/2118752617073414491](https://x.com/Big14teru/status/2118752617073414491)
 
+**Live TEE run (1:08):** [on X](https://x.com/Big14teru/status/2119031416029610428), the risk checker deployed to an Intel TDX enclave on Phala Cloud, its quote verified on chain by the vault, then enclave-signed verdicts on testnet.
+
 Chaperone is a policy vault on NEAR for AI agents. The agent holds only a function-call key that can call one method, `request_spend`, on the vault. Every spend needs a signed counterparty risk verdict (allow / warn / block) and must pass owner-set caveats. Warn-band requests wait for the owner's approval.
 
 ## Problem
@@ -280,7 +282,7 @@ Run on testnet, 7 Nov 2026, with the checker in a Phala Cloud CVM (tdx.small, ds
 | Enclave-signed BLOCK, 500 USDC to the flagged attacker | [tx 3NknHnN2…](https://testnet.nearblocks.io/txns/3NknHnN2Vo4Gb1aiAoNk7XWGWLDUgxh9ojLcQ6RGW7Tu) |
 | Self-signed verdict refused (`BAD_SIGNATURE`) | [tx 7CVajZax…](https://testnet.nearblocks.io/txns/7CVajZaxvijk2evdvGsQSocHe5SxMmvrkuFjUJnUUoNh) |
 
-After the run the owner turned TEE mode off and handed the key back to the hosted checker ([tx GLcxQFck…](https://testnet.nearblocks.io/txns/GLcxQFckKvnWs5azNxeefaTTMifYAj72HctTovMqB1dz)), and the CVM was deleted: it runs on a small paid budget, so it is brought up for demo windows only. To repeat the run, deploy the compose file above to any dstack host and use the commands above; the vault verifies the new quote the same way. `pnpm tee status` and the dashboard show which mode is active.
+A second run was recorded live ([clip](https://x.com/Big14teru/status/2119031416029610428); config, stamped logs and transactions in [docs/video/tee](docs/video/tee/README.md)). After the run the owner turned TEE mode off and handed the key back to the hosted checker ([tx GLcxQFck…](https://testnet.nearblocks.io/txns/GLcxQFckKvnWs5azNxeefaTTMifYAj72HctTovMqB1dz)), and the CVM was deleted: it runs on a small paid budget, so it is brought up for demo windows only. To repeat the run, deploy the compose file above to any dstack host and use the commands above; the vault verifies the new quote the same way. `pnpm tee status` and the dashboard show which mode is active.
 
 ## Shared blocklist registry
 

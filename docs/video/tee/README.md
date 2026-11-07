@@ -1,5 +1,7 @@
 # Live TEE clip
 
+Posted on X: https://x.com/Big14teru/status/2119031416029610428
+
 A 68-second clip of the attested checker, recorded live on 7 Nov 2026: the checker image deployed to a Phala Cloud
 Intel TDX CVM, `pnpm tee attest`, `pnpm tee policy`, `pnpm tee register` (the vault verifies the quote on chain),
 the dashboard reading the attested checker from the contract, and enclave-signed verdicts on testnet. Afterwards TEE
