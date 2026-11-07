@@ -13,6 +13,10 @@
     {
       "tx": "FbCkLkYKAPaohUdzj1bdT9APUjG2iTSnq1MSHFZC5gxg",
       "note": "TEE-attested checker support (register_checker, set_checker_tee_policy, get_checker_tee)"
+    },
+    {
+      "tx": "F17gAvuoEuF9t7VFqVQB3tWt7Ls2MoS3kGRAUdoNhHiN",
+      "note": "attestation verifier recomputes empty per-event digests (dstack 0.5.12 on Phala Cloud)"
     }
   ],
   "agents": [
@@ -37,5 +41,21 @@
     "new_recipient_timelock_ms": 86400000,
     "warn_requires_owner": true
   },
-  "recorded_at": "2026-11-06T12:37:01.796Z"
+  "recorded_at": "2026-11-06T12:37:01.796Z",
+  "tee_checker": {
+    "provider": "Phala Cloud",
+    "instance": "tdx.small",
+    "os": "dstack-0.5.12",
+    "app_id": "209c693eb2c80e9cefb43b6be6b29a456ff73daa",
+    "url": "https://209c693eb2c80e9cefb43b6be6b29a456ff73daa-8787.dstack-pha1-prod5.phala.network",
+    "image": "ghcr.io/big14way/chaperone-checker@sha256:d41133b59ca287785eec4a35dfa22a51f90c9ae8b374a73cdf2e9219c48d64ca",
+    "compose_hash": "31d5ee67a701e18f222fb058325c3bade861d1a688ac4207f5dd43ae568dbf16",
+    "checker_pk": "ed25519:FvDChZvpiCUa1RGrDacsPY8f8YJcHvGifRynBVsD8ggG",
+    "policy_tx": "3Rhjw8bozZe86LeKmgNgZeSV8FztXSkopFXTXugtFUGN",
+    "register_tx": "5m4WXHrV4PAH8zLE5eJHgKZUtBSdwCvYRd6HWyBhvgzG",
+    "attested_allow_tx": "AhTiFGgbGETAVvS3LTJzdrnMZ658t9cjpT6o4FjJvjev",
+    "attested_block_tx": "3NknHnN2Vo4Gb1aiAoNk7XWGWLDUgxh9ojLcQ6RGW7Tu",
+    "vault_refill_tx": "8WBmMQ8himuZD6xmwujLvHtE6iBcLYDr94TAf88j5tPK",
+    "recorded_at": "2026-11-07"
+  }
 }

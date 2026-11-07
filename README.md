@@ -69,7 +69,7 @@ pnpm demo:dry
   ok   kill switch
 ```
 
-Run everything (contract builds; 31 Rust tests: 18 sandbox tests of the vault and the registry, 9 attestation-verifier tests against a real Intel TDX quote, 4 unit tests; typecheck; 37 TypeScript tests; dashboard build):
+Run everything (contract builds; 34 Rust tests: 18 sandbox tests of the vault and the registry, 12 attestation-verifier tests against real Intel TDX quotes, 4 unit tests; typecheck; 37 TypeScript tests; dashboard build):
 
 ```bash
 pnpm check
@@ -247,18 +247,18 @@ curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' \
 
 The checker's signing key is the one secret the vault trusts. Whoever holds it can sign "allow". In TEE mode the vault accepts verdicts only from a key that was created inside an Intel TDX confidential VM running a checker image the owner approved. The vault checks this proof itself, on chain, before it trusts the key.
 
-1. At boot the checker (`checker/src/tee-server.ts`, image `deploy/tee/Dockerfile`, dstack, e.g. on Phala Cloud) generates its ed25519 key in enclave memory. It asks the TDX module for a quote whose report data is `sha256("chaperone-checker-v1:" || vault || ":" || public_key)`. The quote is bound to this vault and this key. A restart makes a new key, which must be registered again.
+1. At boot the checker (`checker/src/tee-server.ts`, image `deploy/tee/Dockerfile`, built from this repo by CI (`.github/workflows/checker-image.yml`) and published as `ghcr.io/big14way/chaperone-checker`, run under dstack on Phala Cloud) generates its ed25519 key in enclave memory. It asks the TDX module for a quote whose report data is `sha256("chaperone-checker-v1:" || vault || ":" || public_key)`. The quote is bound to this vault and this key. A restart makes a new key, which must be registered again.
 2. `GET /attestation` returns the quote, the TCB info and its event log. Anyone can submit them to `register_checker`.
 3. The vault (`crates/chaperone-tee`, using `dcap-qvl`) verifies, in this order:
    - the quote against Intel's DCAP certificate chain with the supplied collateral, at block time;
    - the TCB status (`UpToDate` unless the owner allows more);
    - the report data equals the binding for this vault and key;
-   - MRTD and RTMR0-3 match, and RTMR3 replays from the event log;
+   - MRTD and RTMR0-3 match, and RTMR3 replays from the event log (per-event digests are recomputed, since current dstack guests leave them empty);
    - the `compose-hash` event equals sha256 of the app-compose. The app-compose pins the container image by digest, and the owner approved it;
    - firmware, kernel and OS measurements match an approved set.
 4. If every check passes, the key becomes the checker key. While a TEE policy is set, `set_checker` is disabled and any other key's verdicts are refused with `CHECKER_NOT_ATTESTED`.
 
-A real dstack TDX quote (from NEAR AI Cloud) verifies in the sandbox contract for 184 Tgas, under the 300 Tgas limit (`register_checker_verifies_a_real_tdx_quote_on_chain`). Nine more tests cover forged quotes, another report-data binding, an unapproved image or OS, a tampered event log and expired collateral (`crates/chaperone-tee/tests`). The checks follow NEAR's `shade-attestation` crate. That crate's pinned dependencies conflict with near-sdk 5.30, so the code is ported, not imported.
+A real dstack TDX quote (from NEAR AI Cloud) verifies in the sandbox contract for 184 Tgas, under the 300 Tgas limit (`register_checker_verifies_a_real_tdx_quote_on_chain`). The attestation of this repo's checker on Phala Cloud is a test fixture too. Ten more tests cover forged quotes, another report-data binding, an unapproved image or OS, tampered event logs and expired collateral (`crates/chaperone-tee/tests`). The checks follow NEAR's `shade-attestation` crate. That crate's pinned dependencies conflict with near-sdk 5.30, so the code is ported, not imported.
 
 ```bash
 pnpm tee compose <registry/image@sha256:...>   # deploy/tee/docker-compose.yml, image pinned by digest
@@ -266,9 +266,21 @@ pnpm tee attest https://<checker-in-tee>       # fetch attestation + fresh Intel
 pnpm tee policy                                # owner: approve that image and OS (set_checker_tee_policy)
 pnpm tee register                              # register_checker: the vault verifies the quote and adopts the key
 pnpm tee status                                # get_checker_tee; also shown on the dashboard
+pnpm tee policy off                            # owner: TEE mode off, checker key back to the hosted checker
 ```
 
-Status on testnet: the contract code with `register_checker` is live on `chaperone.testnet` (upgraded through the owner, [tx](https://testnet.nearblocks.io/txns/FbCkLkYKAPaohUdzj1bdT9APUjG2iTSnq1MSHFZC5gxg)). TEE mode stays off until the enclave is deployed, so the hosted checker's key is still the one the owner set. `pnpm tee status` and the dashboard show which mode is active.
+Run on testnet, 7 Nov 2026, with the checker in a Phala Cloud CVM (tdx.small, dstack 0.5.12):
+
+| Step | Result |
+|---|---|
+| Image | `ghcr.io/big14way/chaperone-checker@sha256:d41133b59ca287785eec4a35dfa22a51f90c9ae8b374a73cdf2e9219c48d64ca`, compose hash `31d5ee67…dbf16` ([deploy/tee/docker-compose.yml](deploy/tee/docker-compose.yml)) |
+| Owner approves image and OS | [tx 3Rhjw8bo…](https://testnet.nearblocks.io/txns/3Rhjw8bozZe86LeKmgNgZeSV8FztXSkopFXTXugtFUGN) |
+| `register_checker`: quote verified on chain, TCB UpToDate, 188 Tgas | [tx 5m4WXHrV…](https://testnet.nearblocks.io/txns/5m4WXHrV4PAH8zLE5eJHgKZUtBSdwCvYRd6HWyBhvgzG) |
+| Enclave-signed ALLOW, 6 USDC to the vendor settled | [tx AhTiFGgb…](https://testnet.nearblocks.io/txns/AhTiFGgbGETAVvS3LTJzdrnMZ658t9cjpT6o4FjJvjev) |
+| Enclave-signed BLOCK, 500 USDC to the flagged attacker | [tx 3NknHnN2…](https://testnet.nearblocks.io/txns/3NknHnN2Vo4Gb1aiAoNk7XWGWLDUgxh9ojLcQ6RGW7Tu) |
+| Self-signed verdict refused (`BAD_SIGNATURE`) | [tx 7CVajZax…](https://testnet.nearblocks.io/txns/7CVajZaxvijk2evdvGsQSocHe5SxMmvrkuFjUJnUUoNh) |
+
+The enclave runs on a small paid budget, so it is up for demo windows only. Outside them the owner runs `pnpm tee policy off` and the hosted checker signs again. `pnpm tee status` and the dashboard show which mode is active.
 
 ## Shared blocklist registry
 
