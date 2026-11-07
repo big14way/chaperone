@@ -115,3 +115,77 @@ fn report_data_matches_the_typescript_enclave() {
     let rd = chaperone_tee::report_data_for("chaperone.testnet", &[1u8; 32]);
     assert_eq!(hex::encode(&rd[..32]), "f63aac1c25490c2b399152a79709a3c8e5a3233edbb8ff84468f97fdd519284b");
 }
+
+/// The checker image from this repo, attested by a Phala Cloud dstack CVM: the checker's own binding
+/// (vault and enclave key), and an event log whose per-event digests are left empty.
+struct Checker {
+    quote: Vec<u8>,
+    tcb: TcbInfo,
+    collateral: QuoteCollateralV3,
+    report_data: [u8; 64],
+    now: u64,
+}
+
+fn phala_checker() -> Checker {
+    let raw = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/phala_checker_attestation.json")).unwrap();
+    let a: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let pk = bs58::decode(a["public_key"].as_str().unwrap().trim_start_matches("ed25519:")).into_vec().unwrap();
+    let fetched = a["collateral_fetched_at"].as_str().unwrap();
+    Checker {
+        quote: hex::decode(a["quote"].as_str().unwrap()).unwrap(),
+        tcb: serde_json::from_value(a["tcb_info"].clone()).unwrap(),
+        collateral: serde_json::from_value(a["collateral"].clone()).unwrap(),
+        report_data: chaperone_tee::report_data_for(a["vault"].as_str().unwrap(), &pk),
+        now: chrono_secs(fetched) + 60,
+    }
+}
+
+/// Seconds since the epoch for an ISO-8601 UTC timestamp like 2026-11-07T10:09:23.150Z.
+fn chrono_secs(iso: &str) -> u64 {
+    let (date, time) = iso.split_once('T').unwrap();
+    let d: Vec<i64> = date.split('-').map(|x| x.parse().unwrap()).collect();
+    let t: Vec<f64> = time.trim_end_matches('Z').split(':').map(|x| x.parse().unwrap()).collect();
+    // Days from civil (Howard Hinnant).
+    let (y, m) = if d[1] <= 2 { (d[0] - 1, d[1] + 9) } else { (d[0], d[1] - 3) };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let doy = (153 * m + 2) / 5 + d[2] - 1;
+    let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+    (days * 86_400 + (t[0] * 3600.0 + t[1] * 60.0 + t[2]) as i64) as u64
+}
+
+fn checker_policy(c: &Checker) -> Policy {
+    Policy {
+        compose_hashes: vec![chaperone_tee::compose_hash(&c.tcb).unwrap()],
+        os: vec![OsMeasurement { mrtd: c.tcb.mrtd.clone(), rtmr0: c.tcb.rtmr0.clone(), rtmr1: c.tcb.rtmr1.clone(), rtmr2: c.tcb.rtmr2.clone() }],
+        accepted_tcb_statuses: vec![],
+    }
+}
+
+#[test]
+fn accepts_the_checker_attested_on_phala_cloud() {
+    let c = phala_checker();
+    assert!(c.tcb.event_log.iter().filter(|e| e.imr == 3).all(|e| e.digest.is_empty()), "fixture has digest-less events");
+    let ok = verify(&c.quote, &c.collateral, &c.tcb, &c.report_data, c.now, &checker_policy(&c)).expect("checker attestation must verify");
+    assert_eq!(ok.compose_hash, "31d5ee67a701e18f222fb058325c3bade861d1a688ac4207f5dd43ae568dbf16");
+    assert!(c.tcb.app_compose.contains("ghcr.io/big14way/chaperone-checker@sha256:"));
+}
+
+#[test]
+fn rejects_a_tampered_digestless_event_log() {
+    let mut c = phala_checker();
+    let p = checker_policy(&c);
+    let ev = c.tcb.event_log.iter_mut().find(|e| e.imr == 3 && e.event == "app-id").unwrap();
+    ev.event_payload = "00".repeat(20);
+    let e = verify(&c.quote, &c.collateral, &c.tcb, &c.report_data, c.now, &p).unwrap_err();
+    assert!(e.contains("rtmr3"), "{e}");
+}
+
+#[test]
+fn rejects_the_checker_bound_to_another_vault() {
+    let c = phala_checker();
+    let pk = [7u8; 32];
+    let rd = chaperone_tee::report_data_for("chaperone.testnet", &pk);
+    let e = verify(&c.quote, &c.collateral, &c.tcb, &rd, c.now, &checker_policy(&c)).unwrap_err();
+    assert!(e.contains("report_data"), "{e}");
+}

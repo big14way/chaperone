@@ -114,11 +114,16 @@ pub fn replay_rtmr3(events: &[EventLog]) -> Result<[u8; 48], String> {
             return Err(format!("unexpected event type {} in RTMR3", e.event_type));
         }
         let payload = unhex("event payload", &e.event_payload)?;
-        let digest = unhex("event digest", &e.digest)?;
-        same(&format!("digest of event {}", e.event), &digest, &event_digest(e.event_type, &e.event, &payload))?;
+        // Newer dstack guests leave `digest` empty in the quote's event log: it is fully determined
+        // by the event, so it is recomputed. A digest that is present must still match. Either way
+        // the replayed RTMR3 has to equal the one in the signed quote.
+        let digest = event_digest(e.event_type, &e.event, &payload);
+        if !e.digest.is_empty() {
+            same(&format!("digest of event {}", e.event), &unhex("event digest", &e.digest)?, &digest)?;
+        }
         let mut h = Sha384::new();
         h.update(rtmr);
-        h.update(&digest);
+        h.update(digest);
         rtmr = h.finalize().into();
     }
     Ok(rtmr)

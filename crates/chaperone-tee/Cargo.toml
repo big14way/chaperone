@@ -16,3 +16,6 @@ hex = "0.4"
 [features]
 # Builds dcap-qvl for a NEAR contract (wasm32-unknown-unknown).
 contract = ["dcap-qvl/contract"]
+
+[dev-dependencies]
+bs58 = "0.5"
