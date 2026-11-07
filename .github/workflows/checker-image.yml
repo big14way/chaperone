@@ -10,6 +10,7 @@ on:
     paths:
       - checker/**
       - deploy/tee/**
+      - "!deploy/tee/docker-compose.yml"
       - fixtures/blocklist.json
       - scripts/build-tee-bundle.sh
       - pnpm-lock.yaml
