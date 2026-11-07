@@ -4,8 +4,9 @@
 //   pnpm tee attest <checker-url>        fetch the enclave's attestation and fresh Intel collateral,
 //                                        print what it measures and verify it locally (same checks
 //                                        as the contract); writes .chaperone/tee/
-//   pnpm tee policy [off]                owner: approve that container + OS image as the vault's
-//                                        TEE policy (or turn TEE mode off)
+//   pnpm tee policy [off [ed25519:pk]]   owner: approve that container + OS image as the vault's
+//                                        TEE policy, or turn TEE mode off and hand the checker key
+//                                        back to the hosted checker (CHECKER_SECRET_KEY, or the pk given)
 //   pnpm tee register                    submit the attestation to register_checker (anyone may)
 //   pnpm tee status                      the vault's TEE view
 //
@@ -19,6 +20,7 @@ import bs58 from "bs58";
 import { Account } from "near-api-js";
 import { DEFAULT_RPC, REPO_ROOT } from "../checker/src/config.ts";
 import { ONE_YOCTO, TGAS, Vault, makeProvider } from "../agent/src/near.ts";
+import { checkerKeyFromSecret } from "../checker/src/verdict.ts";
 import { keyFor, loadDotEnv } from "./lib/context.ts";
 import { banner, bold, dim, green, info, red, step } from "./lib/print.ts";
 
@@ -174,8 +176,18 @@ services:
     const p = off ? null : JSON.parse(readFileSync(POLICY, "utf8"));
     banner(off ? `turning TEE mode off on ${vaultId()}` : `approving the checker image for ${vaultId()}`);
     if (p) info(`compose ${p.compose_hashes.join(", ")}\n  os mrtd ${p.os.map((o: { mrtd: string }) => o.mrtd.slice(0, 32) + "…").join(", ")}`);
-    const out = await ownerAccount().callFunctionRaw({ contractId: vaultId(), methodName: "set_checker_tee_policy", args: { policy: p }, deposit: ONE_YOCTO, gas: 50n * TGAS });
+    const owner = ownerAccount();
+    const out = await owner.callFunctionRaw({ contractId: vaultId(), methodName: "set_checker_tee_policy", args: { policy: p }, deposit: ONE_YOCTO, gas: 50n * TGAS });
     info(`tx ${out.transaction_outcome.id}`);
+    if (off) {
+      // The vault still trusts the enclave's key; hand verdicts back to the hosted checker.
+      const hosted = process.argv[4] || (process.env.CHECKER_SECRET_KEY && checkerKeyFromSecret(process.env.CHECKER_SECRET_KEY).publicKey);
+      if (hosted) {
+        step(`checker key back to ${hosted}`);
+        const back = await owner.callFunctionRaw({ contractId: vaultId(), methodName: "set_checker", args: { checker_pk: hosted }, deposit: ONE_YOCTO, gas: 30n * TGAS });
+        info(`tx ${back.transaction_outcome.id}`);
+      } else info("no CHECKER_SECRET_KEY: the vault keeps the enclave's key; set another with pnpm tee policy off <ed25519:pk>");
+    }
     await status();
     break;
   }
@@ -197,6 +209,6 @@ services:
     await status();
     break;
   default:
-    console.log(bold("usage: pnpm tee compose <image@sha256:..> | attest <checker-url> | policy [off] | register | status"));
+    console.log(bold("usage: pnpm tee compose <image@sha256:..> | attest <checker-url> | policy [off [ed25519:pk]] | register | status"));
     process.exit(cmd ? 1 : 0);
 }
