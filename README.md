@@ -280,7 +280,7 @@ Run on testnet, 7 Nov 2026, with the checker in a Phala Cloud CVM (tdx.small, ds
 | Enclave-signed BLOCK, 500 USDC to the flagged attacker | [tx 3NknHnN2…](https://testnet.nearblocks.io/txns/3NknHnN2Vo4Gb1aiAoNk7XWGWLDUgxh9ojLcQ6RGW7Tu) |
 | Self-signed verdict refused (`BAD_SIGNATURE`) | [tx 7CVajZax…](https://testnet.nearblocks.io/txns/7CVajZaxvijk2evdvGsQSocHe5SxMmvrkuFjUJnUUoNh) |
 
-The enclave runs on a small paid budget, so it is up for demo windows only. Outside them the owner runs `pnpm tee policy off` and the hosted checker signs again. `pnpm tee status` and the dashboard show which mode is active.
+After the run the owner turned TEE mode off and handed the key back to the hosted checker ([tx GLcxQFck…](https://testnet.nearblocks.io/txns/GLcxQFckKvnWs5azNxeefaTTMifYAj72HctTovMqB1dz)), and the CVM was deleted: it runs on a small paid budget, so it is brought up for demo windows only. To repeat the run, deploy the compose file above to any dstack host and use the commands above; the vault verifies the new quote the same way. `pnpm tee status` and the dashboard show which mode is active.
 
 ## Shared blocklist registry
 

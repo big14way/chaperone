@@ -56,6 +56,8 @@
     "attested_allow_tx": "AhTiFGgbGETAVvS3LTJzdrnMZ658t9cjpT6o4FjJvjev",
     "attested_block_tx": "3NknHnN2Vo4Gb1aiAoNk7XWGWLDUgxh9ojLcQ6RGW7Tu",
     "vault_refill_tx": "8WBmMQ8himuZD6xmwujLvHtE6iBcLYDr94TAf88j5tPK",
-    "recorded_at": "2026-11-07"
+    "recorded_at": "2026-11-07",
+    "tee_off_tx": "GLcxQFckKvnWs5azNxeefaTTMifYAj72HctTovMqB1dz",
+    "status": "TEE mode off since 2026-11-07; checker key back to the hosted checker; CVM deleted"
   }
 }
