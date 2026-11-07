@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# run.sh <name> <command...>: runs a command live in the repo, writes logs/<name>.log with epoch timestamps per line.
+# run.sh <name> <command...>: runs a command live in the repo and writes logs/<name>.log next to this
+# script, every output line prefixed with its epoch time (the real output and timing of the clip).
 set -o pipefail
+here=$(cd "$(dirname "$0")" && pwd)
 name=$1; shift
-cd /Users/gwill/Developer/chaperone
-echo "$(python3 -c 'import time;print(f"{time.time():.3f}")')	\$ $*" > ~/Developer/chaperone-video/tee/logs/$name.log
-bash -c "$*" 2>&1 | python3 -u ~/.claude/skills/pitch-video/scripts/stamp.py | tee -a ~/Developer/chaperone-video/tee/logs/$name.log | cut -f2-
+cd "$(git -C "$here" rev-parse --show-toplevel)"
+mkdir -p "$here/logs"
+echo "$(python3 -c 'import time;print(f"{time.time():.3f}")')	\$ $*" > "$here/logs/$name.log"
+bash -c "$*" 2>&1 | python3 -u "$HOME/.claude/skills/pitch-video/scripts/stamp.py" | tee -a "$here/logs/$name.log" | cut -f2-
